@@ -97,6 +97,11 @@ body {
   padding: 18px 20px 16px;
 }
 
+.header-inner--nav {
+  justify-content: flex-end;
+  padding: 14px 20px 12px;
+}
+
 .header-greeting {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
@@ -808,14 +813,43 @@ input[type="radio"]:checked + .intensity-chip .intensity-label { color: #fff; }
   margin-top: 10px;
 }
 
-/* ── Brand tagline ───────────────────────────── */
-.tagline {
-  font-size: 10px;
+/* ── Brand hero card ─────────────────────────── */
+.brand-hero {
+  background: linear-gradient(135deg,
+    rgba(74, 37, 179, 0.55) 0%,
+    rgba(123, 42, 181, 0.5) 40%,
+    rgba(184, 65, 162, 0.45) 75%,
+    rgba(196, 72, 138, 0.4) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  padding: 22px 20px 18px;
+  backdrop-filter: blur(12px);
+}
+
+.brand-hero-greeting {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.62);
+  letter-spacing: 0.3px;
+  margin-bottom: 8px;
+}
+
+.brand-hero-name {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  color: #fff;
+  line-height: 1;
+}
+
+.brand-hero-tagline {
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: rgba(210, 131, 183, 0.62);
-  margin-top: 4px;
+  color: rgba(210, 131, 183, 0.72);
+  margin-top: 7px;
 }
 
 /* ── EEG brainwave header strip ──────────────── */
@@ -845,7 +879,7 @@ input[type="radio"]:checked + .intensity-chip .intensity-label { color: #fff; }
   pointer-events: none;
   z-index: -1;
   overflow: hidden;
-  opacity: 0.055;
+  opacity: 0.038;
 }
 
 .eeg-bg-svg {
