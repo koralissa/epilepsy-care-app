@@ -1,0 +1,373 @@
+/* ── Variables ─────────────────────────────── */
+:root {
+  --bg:          #F4F2EF;
+  --surface:     #FFFFFF;
+  --primary:     #3B7D8C;
+  --primary-dk:  #2D6070;
+  --primary-lt:  #E5F2F5;
+  --text:        #1A2B33;
+  --text-muted:  #607585;
+  --border:      #D9D5CF;
+  --radius:      14px;
+  --radius-sm:   10px;
+  --font:        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ease:        0.15s ease;
+}
+
+/* ── Reset ─────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+fieldset { border: none; }
+
+html {
+  font-family: var(--font);
+  font-size: 16px;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+body { min-height: 100dvh; }
+
+/* ── Screen shells ──────────────────────────── */
+.screen {
+  display: none;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.screen.active { display: flex; }
+
+/* ── Header ─────────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--primary);
+}
+
+.entry-count {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-icon:active { background: var(--primary-lt); }
+
+/* ── Home layout ────────────────────────────── */
+.home-main {
+  flex: 1;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Primary button ─────────────────────────── */
+.btn-primary {
+  display: block;
+  width: 100%;
+  padding: 18px 24px;
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  min-height: 58px;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease);
+}
+
+.btn-primary:active { background: var(--primary-dk); }
+
+/* ── Recent entries ─────────────────────────── */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+#entries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty-state {
+  color: var(--text-muted);
+  font-size: 15px;
+  text-align: center;
+  padding: 48px 0;
+  line-height: 1.6;
+}
+
+/* ── Entry card ─────────────────────────────── */
+.entry-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.entry-type {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.entry-pill {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--primary);
+  background: var(--primary-lt);
+  padding: 3px 10px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.entry-time {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.entry-notes {
+  font-size: 14px;
+  color: var(--text-muted);
+  white-space: pre-line;
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+/* ── Form layout ────────────────────────────── */
+.form-main {
+  flex: 1;
+  padding: 24px 20px 48px;
+  overflow-y: auto;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+#seizure-form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.optional {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ── Text / datetime inputs ─────────────────── */
+.input-field {
+  width: 100%;
+  padding: 14px 16px;
+  font-family: var(--font);
+  font-size: 16px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-height: 52px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 125, 140, 0.15);
+}
+
+.input-notes {
+  min-height: 110px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.input-notes::placeholder { color: var(--text-muted); }
+
+/* ── Chip selector ──────────────────────────── */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Visually hidden but reachable by keyboard/AT */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
+  cursor: pointer;
+  min-height: 44px;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease), border-color var(--ease), color var(--ease);
+}
+
+.chip:active { transform: scale(0.96); }
+
+input[type="radio"]:checked + .chip {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+input[type="radio"]:focus-visible + .chip {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ── Save button ────────────────────────────── */
+.btn-save { margin-top: 4px; }
+
+/* ── Success overlay ────────────────────────── */
+.success-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(35, 74, 85, 0.96);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.success-overlay[hidden] { display: none; }
+
+.success-inner {
+  text-align: center;
+  color: #fff;
+  animation: rise 0.3s ease forwards;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.success-check {
+  width: 68px;
+  height: 68px;
+  margin-bottom: 22px;
+}
+
+.check-path {
+  stroke-dasharray: 44;
+  stroke-dashoffset: 44;
+  animation: draw 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.25s forwards;
+}
+
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.success-heading {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.success-sub {
+  font-size: 18px;
+  opacity: 0.72;
+  margin-top: 10px;
+}
+
+/* ── Tablet+ ─────────────────────────────────── */
+@media (min-width: 640px) {
+  .home-main,
+  .form-main {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="Simple, fast seizure logging for epilepsy management">
+  <meta name="theme-color" content="#3B7D8C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="EpiTrack">
+  <title>EpiTrack</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Home Screen -->
+  <div id="screen-home" class="screen active">
+    <header class="app-header">
+      <span class="brand">EpiTrack</span>
+      <span id="entry-count" class="entry-count" aria-live="polite"></span>
+    </header>
+
+    <main class="home-main">
+      <button id="btn-log" class="btn-primary">
+        + Log Seizure
+      </button>
+
+      <section aria-labelledby="recent-heading">
+        <h2 id="recent-heading" class="section-label">Recent</h2>
+        <div id="entries-list" role="list"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Log Form Screen -->
+  <div id="screen-log" class="screen" aria-hidden="true">
+    <header class="app-header">
+      <button id="btn-back" class="btn-icon" aria-label="Back to home">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+      </button>
+      <span class="brand">Log Seizure</span>
+    </header>
+
+    <main class="form-main">
+      <form id="seizure-form" novalidate>
+
+        <!-- When -->
+        <div class="field-group">
+          <label class="field-label" for="seizure-time">When</label>
+          <input type="datetime-local" id="seizure-time" name="time" class="input-field" autocomplete="off">
+        </div>
+
+        <!-- Type -->
+        <fieldset class="field-group">
+          <legend class="field-label">Type</legend>
+          <div class="chip-row">
+            <input type="radio" name="type" id="t-tc"  value="Tonic-clonic"    class="sr-only">
+            <label for="t-tc"  class="chip">Tonic-clonic</label>
+
+            <input type="radio" name="type" id="t-abs" value="Absence"         class="sr-only">
+            <label for="t-abs" class="chip">Absence</label>
+
+            <input type="radio" name="type" id="t-fa"  value="Focal aware"     class="sr-only">
+            <label for="t-fa"  class="chip">Focal aware</label>
+
+            <input type="radio" name="type" id="t-fi"  value="Focal impaired"  class="sr-only">
+            <label for="t-fi"  class="chip">Focal impaired</label>
+
+            <input type="radio" name="type" id="t-myo" value="Myoclonic"       class="sr-only">
+            <label for="t-myo" class="chip">Myoclonic</label>
+
+            <input type="radio" name="type" id="t-ato" value="Atonic"          class="sr-only">
+            <label for="t-ato" class="chip">Atonic (drop)</label>
+
+            <input type="radio" name="type" id="t-unk" value="Unknown"         class="sr-only" checked>
+            <label for="t-unk" class="chip">Not sure</label>
+          </div>
+        </fieldset>
+
+        <!-- Duration -->
+        <fieldset class="field-group">
+          <legend class="field-label">
+            Duration
+            <span class="optional">optional</span>
+          </legend>
+          <div class="chip-row">
+            <input type="radio" name="duration" id="d-u1"  value="&lt; 1 min"  class="sr-only">
+            <label for="d-u1"  class="chip">&lt; 1 min</label>
+
+            <input type="radio" name="duration" id="d-12"  value="1–2 min"     class="sr-only">
+            <label for="d-12"  class="chip">1–2 min</label>
+
+            <input type="radio" name="duration" id="d-25"  value="2–5 min"     class="sr-only">
+            <label for="d-25"  class="chip">2–5 min</label>
+
+            <input type="radio" name="duration" id="d-510" value="5–10 min"    class="sr-only">
+            <label for="d-510" class="chip">5–10 min</label>
+
+            <input type="radio" name="duration" id="d-o10" value="&gt; 10 min" class="sr-only">
+            <label for="d-o10" class="chip">&gt; 10 min</label>
+
+            <input type="radio" name="duration" id="d-ong" value="Ongoing"     class="sr-only">
+            <label for="d-ong" class="chip">Ongoing</label>
+          </div>
+        </fieldset>
+
+        <!-- Notes -->
+        <div class="field-group">
+          <label class="field-label" for="notes">
+            Notes
+            <span class="optional">optional</span>
+          </label>
+          <textarea
+            id="notes"
+            name="notes"
+            class="input-field input-notes"
+            placeholder="What were you doing before? Any warnings? How do you feel now?"
+            rows="4"
+            autocomplete="off"
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary btn-save">Save</button>
+
+      </form>
+    </main>
+  </div>
+
+  <!-- Success Overlay -->
+  <div id="success-overlay" class="success-overlay" role="status" aria-live="assertive" hidden>
+    <div class="success-inner">
+      <svg class="success-check" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+        <circle cx="28" cy="28" r="27" stroke="white" stroke-width="2"/>
+        <path class="check-path" d="M16 28l8 8 16-16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="success-heading">Logged.</p>
+      <p class="success-sub">Rest now.</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

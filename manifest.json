@@ -1,0 +1,25 @@
+{
+  "name": "EpiTrack",
+  "short_name": "EpiTrack",
+  "description": "Fast, calm seizure logging for epilepsy management",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F2EF",
+  "theme_color": "#3B7D8C",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
