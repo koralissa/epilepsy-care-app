@@ -4,143 +4,263 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="description" content="Simple, fast seizure logging for epilepsy management">
-  <meta name="theme-color" content="#3B7D8C">
+  <meta name="theme-color" content="#3B1A6B">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="EpiTrack">
   <title>EpiTrack</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="app-shell">
 
-  <!-- Home Screen -->
-  <div id="screen-home" class="screen active">
-    <header class="app-header">
-      <span class="brand">EpiTrack</span>
-      <span id="entry-count" class="entry-count" aria-live="polite"></span>
-    </header>
+    <!-- ── Main (Home & Insights via tabs) ───────────── -->
+    <div id="screen-main">
 
-    <main class="home-main">
-      <button id="btn-log" class="btn-primary">
-        + Log Seizure
-      </button>
-
-      <section aria-labelledby="recent-heading">
-        <h2 id="recent-heading" class="section-label">Recent</h2>
-        <div id="entries-list" role="list"></div>
-      </section>
-    </main>
-  </div>
-
-  <!-- Log Form Screen -->
-  <div id="screen-log" class="screen" aria-hidden="true">
-    <header class="app-header">
-      <button id="btn-back" class="btn-icon" aria-label="Back to home">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M19 12H5M12 5l-7 7 7 7"/>
-        </svg>
-      </button>
-      <span class="brand">Log Seizure</span>
-    </header>
-
-    <main class="form-main">
-      <form id="seizure-form" novalidate>
-
-        <!-- When -->
-        <div class="field-group">
-          <label class="field-label" for="seizure-time">When</label>
-          <input type="datetime-local" id="seizure-time" name="time" class="input-field" autocomplete="off">
-        </div>
-
-        <!-- Type -->
-        <fieldset class="field-group">
-          <legend class="field-label">Type</legend>
-          <div class="chip-row">
-            <input type="radio" name="type" id="t-tc"  value="Tonic-clonic"    class="sr-only">
-            <label for="t-tc"  class="chip">Tonic-clonic</label>
-
-            <input type="radio" name="type" id="t-abs" value="Absence"         class="sr-only">
-            <label for="t-abs" class="chip">Absence</label>
-
-            <input type="radio" name="type" id="t-fa"  value="Focal aware"     class="sr-only">
-            <label for="t-fa"  class="chip">Focal aware</label>
-
-            <input type="radio" name="type" id="t-fi"  value="Focal impaired"  class="sr-only">
-            <label for="t-fi"  class="chip">Focal impaired</label>
-
-            <input type="radio" name="type" id="t-myo" value="Myoclonic"       class="sr-only">
-            <label for="t-myo" class="chip">Myoclonic</label>
-
-            <input type="radio" name="type" id="t-ato" value="Atonic"          class="sr-only">
-            <label for="t-ato" class="chip">Atonic (drop)</label>
-
-            <input type="radio" name="type" id="t-unk" value="Unknown"         class="sr-only" checked>
-            <label for="t-unk" class="chip">Not sure</label>
+      <!-- Home tab -->
+      <div id="view-home" class="tab-view">
+        <header class="app-header">
+          <div class="header-inner">
+            <div>
+              <p id="greeting" class="header-greeting"></p>
+              <h1 class="brand">EpiTrack</h1>
+            </div>
+            <button class="profile-btn" aria-label="Profile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/>
+              </svg>
+            </button>
           </div>
-        </fieldset>
+        </header>
 
-        <!-- Duration -->
-        <fieldset class="field-group">
-          <legend class="field-label">
-            Duration
-            <span class="optional">optional</span>
-          </legend>
-          <div class="chip-row">
-            <input type="radio" name="duration" id="d-u1"  value="&lt; 1 min"  class="sr-only">
-            <label for="d-u1"  class="chip">&lt; 1 min</label>
+        <div class="view-body">
+          <button id="btn-log" class="btn-log-hero">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Log Seizure
+          </button>
 
-            <input type="radio" name="duration" id="d-12"  value="1–2 min"     class="sr-only">
-            <label for="d-12"  class="chip">1–2 min</label>
-
-            <input type="radio" name="duration" id="d-25"  value="2–5 min"     class="sr-only">
-            <label for="d-25"  class="chip">2–5 min</label>
-
-            <input type="radio" name="duration" id="d-510" value="5–10 min"    class="sr-only">
-            <label for="d-510" class="chip">5–10 min</label>
-
-            <input type="radio" name="duration" id="d-o10" value="&gt; 10 min" class="sr-only">
-            <label for="d-o10" class="chip">&gt; 10 min</label>
-
-            <input type="radio" name="duration" id="d-ong" value="Ongoing"     class="sr-only">
-            <label for="d-ong" class="chip">Ongoing</label>
+          <div class="stats-row">
+            <div class="stat-card">
+              <span class="stat-num" id="stat-month">0</span>
+              <span class="stat-label">This month</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num" id="stat-last">—</span>
+              <span class="stat-label">Days since last</span>
+            </div>
           </div>
-        </fieldset>
 
-        <!-- Notes -->
-        <div class="field-group">
-          <label class="field-label" for="notes">
-            Notes
-            <span class="optional">optional</span>
-          </label>
-          <textarea
-            id="notes"
-            name="notes"
-            class="input-field input-notes"
-            placeholder="What were you doing before? Any warnings? How do you feel now?"
-            rows="4"
-            autocomplete="off"
-          ></textarea>
+          <section aria-labelledby="recent-heading">
+            <h2 id="recent-heading" class="section-label">Recent</h2>
+            <div id="entries-list" role="list"></div>
+          </section>
         </div>
+      </div>
 
-        <button type="submit" class="btn-primary btn-save">Save</button>
+      <!-- Insights tab -->
+      <div id="view-insights" class="tab-view" hidden>
+        <header class="app-header">
+          <div class="header-inner">
+            <h1 class="brand">Insights</h1>
+          </div>
+        </header>
+        <div id="insights-body" class="view-body"></div>
+      </div>
 
-      </form>
-    </main>
-  </div>
+      <!-- Bottom nav -->
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <button class="nav-btn active" data-view="home">
+          <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 9.5L12 3l9 6.5V21H15v-6h-6v6H3V9.5z"/>
+          </svg>
+          <span class="nav-label">Home</span>
+        </button>
 
-  <!-- Success Overlay -->
-  <div id="success-overlay" class="success-overlay" role="status" aria-live="assertive" hidden>
-    <div class="success-inner">
-      <svg class="success-check" viewBox="0 0 56 56" fill="none" aria-hidden="true">
-        <circle cx="28" cy="28" r="27" stroke="white" stroke-width="2"/>
-        <path class="check-path" d="M16 28l8 8 16-16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <p class="success-heading">Logged.</p>
-      <p class="success-sub">Rest now.</p>
+        <button class="nav-btn nav-log-btn" id="nav-log-btn" aria-label="Log seizure">
+          <div class="nav-log-circle" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </div>
+          <span class="nav-label">Log</span>
+        </button>
+
+        <button class="nav-btn" data-view="insights">
+          <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 20V10M12 20V4M6 20v-6"/>
+          </svg>
+          <span class="nav-label">Insights</span>
+        </button>
+      </nav>
     </div>
-  </div>
 
+    <!-- ── Log modal (slides up) ─────────────────────── -->
+    <div id="screen-log" class="screen-modal" aria-hidden="true">
+      <div class="modal-handle" aria-hidden="true"></div>
+      <header class="modal-header">
+        <button id="btn-cancel" class="btn-cancel">Cancel</button>
+        <h2 class="modal-title">Log Seizure</h2>
+        <div class="modal-spacer" aria-hidden="true"></div>
+      </header>
+
+      <div class="form-scroll">
+        <form id="seizure-form" novalidate>
+
+          <!-- When -->
+          <section class="form-section">
+            <h3 class="form-section-label">When did it happen?</h3>
+            <input type="datetime-local" id="seizure-time" name="time" class="input-field" autocomplete="off">
+          </section>
+
+          <!-- Type -->
+          <section class="form-section">
+            <h3 class="form-section-label">Seizure type</h3>
+            <div class="chip-row">
+              <input type="radio" name="type" id="t-tc"  value="Tonic-clonic"   class="sr-only">
+              <label for="t-tc"  class="chip">Tonic-clonic</label>
+
+              <input type="radio" name="type" id="t-abs" value="Absence"        class="sr-only">
+              <label for="t-abs" class="chip">Absence</label>
+
+              <input type="radio" name="type" id="t-fa"  value="Focal aware"    class="sr-only">
+              <label for="t-fa"  class="chip">Focal aware</label>
+
+              <input type="radio" name="type" id="t-fi"  value="Focal impaired" class="sr-only">
+              <label for="t-fi"  class="chip">Focal impaired</label>
+
+              <input type="radio" name="type" id="t-myo" value="Myoclonic"      class="sr-only">
+              <label for="t-myo" class="chip">Myoclonic</label>
+
+              <input type="radio" name="type" id="t-ato" value="Atonic"         class="sr-only">
+              <label for="t-ato" class="chip">Atonic (drop)</label>
+
+              <input type="radio" name="type" id="t-unk" value="Unknown"        class="sr-only" checked>
+              <label for="t-unk" class="chip">Not sure</label>
+            </div>
+          </section>
+
+          <!-- Intensity -->
+          <section class="form-section">
+            <h3 class="form-section-label">
+              How intense?
+              <span class="optional-tag">optional</span>
+            </h3>
+            <div class="intensity-row">
+              <input type="radio" name="intensity" id="i-mild"     value="Mild"     class="sr-only">
+              <label for="i-mild" class="intensity-chip">
+                <span class="intensity-emoji">😐</span>
+                <span class="intensity-label">Mild</span>
+              </label>
+
+              <input type="radio" name="intensity" id="i-moderate" value="Moderate" class="sr-only">
+              <label for="i-moderate" class="intensity-chip">
+                <span class="intensity-emoji">😟</span>
+                <span class="intensity-label">Moderate</span>
+              </label>
+
+              <input type="radio" name="intensity" id="i-severe"   value="Severe"   class="sr-only">
+              <label for="i-severe" class="intensity-chip">
+                <span class="intensity-emoji">😰</span>
+                <span class="intensity-label">Severe</span>
+              </label>
+            </div>
+          </section>
+
+          <!-- Duration -->
+          <section class="form-section">
+            <h3 class="form-section-label">
+              Duration
+              <span class="optional-tag">optional</span>
+            </h3>
+            <div class="chip-row">
+              <input type="radio" name="duration" id="d-u1"  value="< 1 min"  class="sr-only">
+              <label for="d-u1"  class="chip">< 1 min</label>
+
+              <input type="radio" name="duration" id="d-12"  value="1–2 min"  class="sr-only">
+              <label for="d-12"  class="chip">1–2 min</label>
+
+              <input type="radio" name="duration" id="d-25"  value="2–5 min"  class="sr-only">
+              <label for="d-25"  class="chip">2–5 min</label>
+
+              <input type="radio" name="duration" id="d-510" value="5–10 min" class="sr-only">
+              <label for="d-510" class="chip">5–10 min</label>
+
+              <input type="radio" name="duration" id="d-o10" value="> 10 min" class="sr-only">
+              <label for="d-o10" class="chip">> 10 min</label>
+
+              <input type="radio" name="duration" id="d-ong" value="Ongoing"  class="sr-only">
+              <label for="d-ong" class="chip">Ongoing</label>
+            </div>
+          </section>
+
+          <!-- Triggers -->
+          <section class="form-section">
+            <h3 class="form-section-label">
+              Triggers
+              <span class="optional-tag">optional · select all that apply</span>
+            </h3>
+            <div class="chip-row">
+              <input type="checkbox" name="triggers" id="tr-stress" value="Stress"            class="sr-only">
+              <label for="tr-stress" class="chip">Stress</label>
+
+              <input type="checkbox" name="triggers" id="tr-sleep"  value="Poor sleep"        class="sr-only">
+              <label for="tr-sleep"  class="chip">Poor sleep</label>
+
+              <input type="checkbox" name="triggers" id="tr-meds"   value="Missed medication" class="sr-only">
+              <label for="tr-meds"   class="chip">Missed meds</label>
+
+              <input type="checkbox" name="triggers" id="tr-heat"   value="Hot weather"       class="sr-only">
+              <label for="tr-heat"   class="chip">Hot weather</label>
+
+              <input type="checkbox" name="triggers" id="tr-cycle"  value="Menstrual cycle"   class="sr-only">
+              <label for="tr-cycle"  class="chip">Menstrual cycle</label>
+
+              <input type="checkbox" name="triggers" id="tr-other"  value="Other"             class="sr-only">
+              <label for="tr-other"  class="chip">Other</label>
+            </div>
+          </section>
+
+          <!-- Notes -->
+          <section class="form-section">
+            <h3 class="form-section-label">
+              Notes
+              <span class="optional-tag">optional</span>
+            </h3>
+            <textarea
+              id="notes"
+              name="notes"
+              class="input-field input-notes"
+              placeholder="Before it started, any warnings, how you feel now…"
+              rows="3"
+              autocomplete="off"
+            ></textarea>
+          </section>
+
+          <div class="form-footer">
+            <button type="submit" class="btn-save">Save</button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Success overlay ────────────────────────────── -->
+    <div id="success-overlay" class="success-overlay" role="status" aria-live="assertive" hidden>
+      <div class="success-inner">
+        <svg class="success-check" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+          <circle cx="28" cy="28" r="27" stroke="white" stroke-width="2"/>
+          <path class="check-path" d="M16 28l8 8 16-16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="success-heading">Logged.</p>
+        <p class="success-sub">Rest now.</p>
+      </div>
+    </div>
+
+  </div><!-- /.app-shell -->
   <script src="app.js"></script>
 </body>
 </html>
