@@ -1,13 +1,13 @@
 {
-  "name": "EpiTrack",
-  "short_name": "EpiTrack",
-  "description": "Fast, calm seizure logging for epilepsy management",
+  "name": "Vivea",
+  "short_name": "Vivea",
+  "description": "Seizure tracking and pattern insights",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F8F4FC",
-  "theme_color": "#3B1A6B",
+  "background_color": "#4A25B3",
+  "theme_color": "#4A25B3",
   "icons": [
     {
       "src": "icon-192.png",

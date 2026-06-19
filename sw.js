@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'epitrack-v1';
+const CACHE = 'vivea-v1';
 const PRECACHE = ['./index.html', './style.css', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {
