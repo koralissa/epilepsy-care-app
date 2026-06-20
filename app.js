@@ -534,6 +534,99 @@ if ('serviceWorker' in navigator) {
 }
 
 // ── Onboarding ─────────────────────────────────
+const MED_LIST = [
+  { brand: 'Keppra',    generic: 'levetiracetam' },
+  { brand: 'Lamictal',  generic: 'lamotrigine' },
+  { brand: 'Depakote',  generic: 'valproate' },
+  { brand: 'Vimpat',    generic: 'lacosamide' },
+  { brand: 'Topamax',   generic: 'topiramate' },
+  { brand: 'Lyrica',    generic: 'pregabalin' },
+  { brand: 'Tegretol',  generic: 'carbamazepine' },
+  { brand: 'Zonegran',  generic: 'zonisamide' },
+  { brand: 'Trileptal', generic: 'oxcarbazepine' },
+  { brand: 'Onfi',      generic: 'clobazam' },
+  { brand: 'Epidiolex', generic: 'cannabidiol' },
+  { brand: 'Fycompa',   generic: 'perampanel' },
+  { brand: 'Briviact',  generic: 'brivaracetam' },
+  { brand: 'Xcopri',    generic: 'cenobamate' },
+  { brand: 'Other',     generic: '' },
+];
+
+function buildMedCard(idx) {
+  const card = document.createElement('div');
+  card.className = 'ob-med-card';
+  card.id = `ob-med-card-${idx}`;
+  card.innerHTML = `
+    <div class="ob-med-name-wrap">
+      <input type="text" class="input-field ob-med-name" id="ob-med-${idx}"
+        placeholder="Search medication…" autocomplete="off"
+        autocapitalize="off" autocorrect="off" spellcheck="false">
+      <div class="ob-med-dropdown" id="ob-dd-${idx}" hidden></div>
+      <input type="text" class="input-field ob-med-other" id="ob-med-other-${idx}"
+        placeholder="Enter medication name" autocomplete="off"
+        autocapitalize="words" hidden>
+    </div>
+    <div class="ob-med-row">
+      <input type="text" class="input-field ob-med-strength" id="ob-med-str-${idx}"
+        placeholder="Strength" inputmode="decimal" autocomplete="off">
+      <select class="input-field ob-med-unit" id="ob-med-unit-${idx}">
+        <option value="mg">mg</option>
+        <option value="mcg">mcg</option>
+        <option value="g">g</option>
+      </select>
+    </div>
+    <div class="ob-med-freq-row">
+      <span class="ob-med-freq-label">Times per day</span>
+      <div class="ob-times-wrap">
+        ${[1,2,3,4].map(n => `<button type="button" class="ob-times-btn" data-freq="${n}">${n}×</button>`).join('')}
+      </div>
+    </div>`;
+
+  const nameInput  = card.querySelector('.ob-med-name');
+  const dropdown   = card.querySelector('.ob-med-dropdown');
+  const otherInput = card.querySelector('.ob-med-other');
+
+  function renderDropdown(q) {
+    const lower = q.toLowerCase();
+    const matches = lower
+      ? MED_LIST.filter(m => m.brand.toLowerCase().includes(lower) || m.generic.toLowerCase().includes(lower))
+      : MED_LIST;
+    dropdown.innerHTML = matches.map(m =>
+      `<button type="button" class="ob-dd-item" data-brand="${esc(m.brand)}">
+        <span class="ob-dd-brand">${esc(m.brand)}</span>
+        ${m.generic ? `<span class="ob-dd-generic">${esc(m.generic)}</span>` : ''}
+       </button>`
+    ).join('');
+    dropdown.hidden = matches.length === 0;
+    dropdown.querySelectorAll('.ob-dd-item').forEach(btn => {
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        selectMed(btn.dataset.brand);
+      });
+    });
+  }
+
+  function selectMed(brand) {
+    nameInput.value = brand;
+    dropdown.hidden = true;
+    otherInput.hidden = brand !== 'Other';
+    if (brand === 'Other') setTimeout(() => otherInput.focus(), 0);
+  }
+
+  nameInput.addEventListener('focus', () => renderDropdown(nameInput.value));
+  nameInput.addEventListener('input', () => renderDropdown(nameInput.value));
+  nameInput.addEventListener('blur',  () => setTimeout(() => { dropdown.hidden = true; }, 160));
+
+  card.querySelectorAll('.ob-times-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      card.querySelectorAll('.ob-times-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  return card;
+}
+
 let obIdx = 0;
 
 function obGetFlow() {
@@ -600,20 +693,18 @@ function obGoBack() {
   if (obIdx > 0) obNavigate(obIdx - 1, 'back');
 }
 
-let obMedCount = 1;
+let obMedCount = 0;
 
-function obAddMed() {
+function obInitMedCards() {
+  if (obMedCount > 0) return;
+  obAddMedCard();
+}
+
+function obAddMedCard() {
   if (obMedCount >= 3) return;
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.id = `ob-med-${obMedCount}`;
-  input.className = 'input-field ob-med-input';
-  input.placeholder = 'Medication name';
-  input.autocomplete = 'off';
-  input.autocapitalize = 'words';
-  document.getElementById('ob-med-extra').appendChild(input);
+  document.getElementById('ob-med-cards').appendChild(buildMedCard(obMedCount));
   obMedCount++;
-  if (obMedCount >= 3) document.getElementById('ob-med-add').hidden = true;
+  document.getElementById('ob-med-add').hidden = obMedCount >= 3;
 }
 
 function obCollectProfile() {
@@ -626,10 +717,24 @@ function obCollectProfile() {
   const dontKnow = noneEl && noneEl.checked;
 
   const medications = [];
-  for (let i = 0; i < 3; i++) {
-    const el = document.getElementById(`ob-med-${i}`);
-    if (el) { const v = el.value.trim(); if (v) medications.push(v); }
-  }
+  document.querySelectorAll('.ob-med-card').forEach(card => {
+    const nameInput  = card.querySelector('.ob-med-name');
+    const otherInput = card.querySelector('.ob-med-other');
+    const strInput   = card.querySelector('.ob-med-strength');
+    const unitSel    = card.querySelector('.ob-med-unit');
+    const activeFreq = card.querySelector('.ob-times-btn.active');
+    const rawName    = nameInput ? nameInput.value.trim() : '';
+    if (!rawName) return;
+    const finalName  = rawName === 'Other'
+      ? (otherInput && otherInput.value.trim() ? otherInput.value.trim() : 'Other')
+      : rawName;
+    medications.push({
+      name:        finalName,
+      strength:    strInput    ? strInput.value.trim() : '',
+      unit:        unitSel     ? unitSel.value         : 'mg',
+      timesPerDay: activeFreq  ? parseInt(activeFreq.dataset.freq, 10) : null,
+    });
+  });
 
   return {
     userType:     who ? who.value : null,
@@ -662,9 +767,10 @@ function applyProfile(profile) {
 
   // 1. Trigger chip: replace "Missed meds" label with "Missed [MedName]"
   if (profile.takingMeds === 'yes' && profile.medications.length > 0) {
-    const name = profile.medications[0];
-    const inp = document.getElementById('tr-meds');
-    const lbl = document.querySelector('label[for="tr-meds"]');
+    const med  = profile.medications[0];
+    const name = typeof med === 'object' ? med.name : String(med);
+    const inp  = document.getElementById('tr-meds');
+    const lbl  = document.querySelector('label[for="tr-meds"]');
     if (inp && lbl) { inp.value = `Missed ${name}`; lbl.textContent = `Missed ${name}`; }
   }
 
@@ -765,9 +871,10 @@ function showHint(key) {
   // Finish button (screen 7)
   document.getElementById('ob-finish').addEventListener('click', obComplete);
 
-  // Screen 3: reveal medication inputs on "Yes"
+  // Screen 3: reveal medication cards on "Yes"
   document.getElementById('ob-med-yes').addEventListener('change', () => {
     document.getElementById('ob-med-inputs').hidden = false;
+    obInitMedCards();
   });
   document.getElementById('ob-med-not').addEventListener('change', () => {
     document.getElementById('ob-med-inputs').hidden = true;
@@ -775,7 +882,7 @@ function showHint(key) {
   document.getElementById('ob-med-skip').addEventListener('change', () => {
     document.getElementById('ob-med-inputs').hidden = true;
   });
-  document.getElementById('ob-med-add').addEventListener('click', obAddMed);
+  document.getElementById('ob-med-add').addEventListener('click', obAddMedCard);
 
   // Screen 4: "I don't know yet" exclusive behavior
   const obTrNone = document.getElementById('ob-tr-none');

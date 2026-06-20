@@ -490,9 +490,8 @@
               <label for="ob-med-skip" class="ob-option"><span class="ob-option-main">Skip for now</span></label>
             </div>
             <div id="ob-med-inputs" class="ob-med-inputs" hidden>
-              <input type="text" id="ob-med-0" class="input-field ob-med-input" placeholder="Medication name (e.g. Keppra)" autocomplete="off" autocapitalize="words">
-              <div id="ob-med-extra"></div>
-              <button type="button" id="ob-med-add" class="ob-btn-add">+ Add another</button>
+              <div id="ob-med-cards"></div>
+              <button type="button" id="ob-med-add" class="ob-btn-add">+ Add another medication</button>
             </div>
           </div>
           <div class="ob-footer">
@@ -564,11 +563,36 @@
               <input type="radio" name="ob-device" id="ob-dev-no"  value="no"  class="sr-only">
               <label for="ob-dev-no"  class="ob-option"><span class="ob-option-main">No</span></label>
             </div>
-            <div id="ob-device-types" class="chip-row" hidden>
-              <input type="radio" name="ob-device-type" id="ob-dt-vns"   value="VNS"   class="sr-only"><label for="ob-dt-vns"   class="chip">VNS (vagus nerve)</label>
-              <input type="radio" name="ob-device-type" id="ob-dt-rns"   value="RNS"   class="sr-only"><label for="ob-dt-rns"   class="chip">RNS (responsive neuro)</label>
-              <input type="radio" name="ob-device-type" id="ob-dt-dbs"   value="DBS"   class="sr-only"><label for="ob-dt-dbs"   class="chip">DBS (deep brain)</label>
-              <input type="radio" name="ob-device-type" id="ob-dt-oth"   value="Other" class="sr-only"><label for="ob-dt-oth"   class="chip">Other</label>
+            <div id="ob-device-types" class="ob-device-opts" hidden>
+              <input type="radio" name="ob-device-type" id="ob-dt-vns" value="VNS" class="sr-only">
+              <label for="ob-dt-vns" class="ob-device-opt">
+                <span class="ob-device-name">VNS — Vagus Nerve Stimulator</span>
+                <span class="ob-device-desc">Sends mild electrical pulses through the vagus nerve to reduce seizure frequency</span>
+              </label>
+
+              <input type="radio" name="ob-device-type" id="ob-dt-rns" value="RNS" class="sr-only">
+              <label for="ob-dt-rns" class="ob-device-opt">
+                <span class="ob-device-name">RNS — Responsive Neurostimulation</span>
+                <span class="ob-device-desc">Detects abnormal brain activity and delivers targeted stimulation to prevent seizures</span>
+              </label>
+
+              <input type="radio" name="ob-device-type" id="ob-dt-dbs" value="DBS" class="sr-only">
+              <label for="ob-dt-dbs" class="ob-device-opt">
+                <span class="ob-device-name">DBS — Deep Brain Stimulation</span>
+                <span class="ob-device-desc">Delivers continuous electrical stimulation to specific brain regions to control seizures</span>
+              </label>
+
+              <input type="radio" name="ob-device-type" id="ob-dt-epw" value="EpiWatch" class="sr-only">
+              <label for="ob-dt-epw" class="ob-device-opt">
+                <span class="ob-device-name">EpiWatch</span>
+                <span class="ob-device-desc">FDA-cleared Apple Watch app that detects tonic-clonic seizures and alerts caregivers</span>
+              </label>
+
+              <input type="radio" name="ob-device-type" id="ob-dt-oth" value="Other" class="sr-only">
+              <label for="ob-dt-oth" class="ob-device-opt">
+                <span class="ob-device-name">Other</span>
+                <span class="ob-device-desc">Another epilepsy management or detection device</span>
+              </label>
             </div>
           </div>
           <div class="ob-footer">
