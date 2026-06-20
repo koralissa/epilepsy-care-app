@@ -1215,12 +1215,20 @@ function saveCaregiverProfile() {
 
 // ── Welcome screen ────────────────────────────
 function obInitScreens() {
+  obIdx = 0;
+  obMedCount = 0;
+  document.getElementById('ob-med-cards').innerHTML = '';
+  document.getElementById('ob-med-inputs').hidden = true;
+  document.getElementById('ob-med-add').hidden = false;
+  // Reset radio states for med question
+  document.querySelectorAll('input[name="ob-meds"]').forEach(r => { r.checked = false; });
+
   document.getElementById('screen-onboarding').hidden = false;
   const obScreens = document.querySelectorAll('.ob-screen');
   obScreens.forEach((el, i) => {
-    el.style.transform    = i === 0 ? 'translateX(0)'   : 'translateX(100%)';
-    el.style.opacity      = i === 0 ? '1'               : '0';
-    el.style.pointerEvents = i === 0 ? 'auto' : 'none';
+    el.style.transform     = i === 0 ? 'translateX(0)'   : 'translateX(100%)';
+    el.style.opacity       = i === 0 ? '1'               : '0';
+    el.style.pointerEvents = i === 0 ? 'auto'            : 'none';
   });
   obUpdateHeader();
 }
@@ -1254,14 +1262,15 @@ function obInitScreens() {
   document.getElementById('ob-finish').addEventListener('click', obComplete);
 
   // Screen 3: reveal medication cards on "Yes"
-  document.getElementById('ob-med-yes').addEventListener('change', () => {
+  // Use click on labels (not change on sr-only inputs) for iOS Safari compatibility
+  document.querySelector('label[for="ob-med-yes"]').addEventListener('click', () => {
     document.getElementById('ob-med-inputs').hidden = false;
     obInitMedCards();
   });
-  document.getElementById('ob-med-not').addEventListener('change', () => {
+  document.querySelector('label[for="ob-med-not"]').addEventListener('click', () => {
     document.getElementById('ob-med-inputs').hidden = true;
   });
-  document.getElementById('ob-med-skip').addEventListener('change', () => {
+  document.querySelector('label[for="ob-med-skip"]').addEventListener('click', () => {
     document.getElementById('ob-med-inputs').hidden = true;
   });
   document.getElementById('ob-med-add').addEventListener('click', obAddMedCard);
@@ -1279,10 +1288,10 @@ function obInitScreens() {
   });
 
   // Screen 6: reveal device type chips on "Yes"
-  document.getElementById('ob-dev-yes').addEventListener('change', () => {
+  document.querySelector('label[for="ob-dev-yes"]').addEventListener('click', () => {
     document.getElementById('ob-device-types').hidden = false;
   });
-  document.getElementById('ob-dev-no').addEventListener('change', () => {
+  document.querySelector('label[for="ob-dev-no"]').addEventListener('click', () => {
     document.getElementById('ob-device-types').hidden = true;
   });
 })();
