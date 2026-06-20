@@ -869,3 +869,314 @@ input[type="checkbox"]:focus-visible + .chip {
   color: rgba(255, 255, 255, 0.72);
   margin-top: 8px;
 }
+
+/* ── Dev reset bar (remove before demo) ──────── */
+.dev-reset-bar {
+  text-align: center;
+  padding: 6px 0 2px;
+}
+
+.dev-reset-btn {
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--text-sec);
+  cursor: pointer;
+  padding: 4px 8px;
+  opacity: 0.55;
+  -webkit-tap-highlight-color: transparent;
+}
+.dev-reset-btn:active { opacity: 1; }
+
+/* ── Onboarding ───────────────────────────────── */
+.ob-shell {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.35s ease;
+}
+
+.ob-header {
+  flex-shrink: 0;
+  background: var(--purple-900);
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  gap: 8px;
+}
+
+.ob-back {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.ob-back:active { background: rgba(255,255,255,0.12); }
+
+.ob-step {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.82);
+  letter-spacing: 0.2px;
+}
+
+.ob-header-end { width: 40px; flex-shrink: 0; }
+
+.ob-progress-track {
+  flex-shrink: 0;
+  height: 3px;
+  background: rgba(91,32,150,0.15);
+}
+
+.ob-progress-fill {
+  height: 100%;
+  background: var(--purple-900);
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ob-screens {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.ob-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
+  pointer-events: none;
+}
+
+.ob-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 36px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.ob-footer {
+  flex-shrink: 0;
+  padding: 16px 24px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  border-top: 1px solid var(--purple-200);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Hero text */
+.ob-hero { display: flex; flex-direction: column; gap: 8px; }
+
+.ob-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.ob-subtitle {
+  font-size: 15px;
+  color: var(--text-sec);
+  line-height: 1.6;
+}
+
+/* Large option cards (radio) */
+.ob-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ob-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 16px 20px;
+  border: 1.5px solid var(--purple-200);
+  border-radius: var(--radius);
+  background: var(--white);
+  cursor: pointer;
+  min-height: 60px;
+  justify-content: center;
+  transition: border-color 0.12s ease, background 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.ob-option:active { background: var(--purple-50); }
+
+input[type="radio"]:checked + .ob-option {
+  border-color: var(--purple-900);
+  background: var(--purple-50);
+}
+input[type="radio"]:checked + .ob-option .ob-option-main {
+  color: var(--purple-900);
+}
+input[type="radio"]:focus-visible + .ob-option {
+  outline: 2px solid var(--purple-900);
+  outline-offset: 2px;
+}
+
+.ob-option-main {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.ob-option-sub {
+  font-size: 13px;
+  color: var(--text-sec);
+  line-height: 1.4;
+}
+
+/* Helper text */
+.ob-helper {
+  font-size: 13px;
+  color: var(--text-sec);
+  line-height: 1.6;
+  padding: 10px 14px;
+  background: var(--purple-50);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--purple-500);
+}
+
+/* "I don't know yet" exclusive option */
+.ob-exclusive-row { margin-top: 4px; }
+
+.ob-exclusive-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-sec);
+  background: var(--white);
+  border: 1.5px solid var(--purple-200);
+  border-radius: 100px;
+  cursor: pointer;
+  min-height: 40px;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+#ob-tr-none:checked + .ob-exclusive-label {
+  background: var(--purple-900);
+  border-color: var(--purple-900);
+  color: var(--white);
+}
+
+/* Medication inputs */
+.ob-med-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.ob-med-input { margin: 0; }
+
+.ob-btn-add {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--purple-900);
+  cursor: pointer;
+  padding: 4px 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.ob-btn-add:active { opacity: 0.6; }
+
+/* Device type chips revealed inline */
+#ob-device-types { margin-top: 8px; }
+
+/* Navigation buttons */
+.ob-btn-next {
+  display: block;
+  width: 100%;
+  padding: 16px 24px;
+  background: var(--purple-900);
+  color: var(--white);
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  min-height: 56px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease), opacity var(--ease);
+}
+.ob-btn-next:active { background: var(--purple-700); }
+.ob-btn-next:disabled {
+  background: var(--purple-200);
+  color: var(--text-sec);
+  cursor: not-allowed;
+}
+
+.ob-btn-skip {
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-sec);
+  cursor: pointer;
+  padding: 6px;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.ob-btn-skip:active { opacity: 0.6; }
+
+/* Done screen */
+.ob-content-done {
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+}
+
+.ob-done-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--purple-900);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+/* ── Feature hints (newly diagnosed) ─────────── */
+.ob-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #E8F5F0;
+  border-left: 3px solid #00875A;
+  color: #006644;
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 500;
+}

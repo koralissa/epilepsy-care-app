@@ -206,6 +206,48 @@ logged seizure type and frequency.
 
 ---
 
+
+## When We Use AI
+
+Not every feature is an AI problem.
+
+**The principle: finite problems get deterministic 
+solutions. Infinite problems get AI.**
+
+A finite problem has a known output space — 
+a fixed set of possible answers. Chip selectors, 
+conditional forms, settings, navigation. 
+These are faster, cheaper, more reliable, 
+and work offline. AI adds no value here.
+
+An infinite problem has an unbounded output space — 
+pattern recognition across unknown data combinations, 
+natural language interpretation, narrative synthesis, 
+open-ended clinical questions. This is where AI 
+earns its place.
+
+| Feature | Output Space | Solution |
+|---------|-------------|----------|
+| Collect seizure type | Finite | Chip selector |
+| Collect triggers | Finite | Chip selector |
+| User onboarding | Finite | Conditional form |
+| Configure profile | Finite | Settings form |
+| Find log patterns | Infinite | Pattern Agent |
+| Interpret voice input | Infinite | Capture Agent |
+| Generate clinical summary | Infinite | Clinical Agent |
+| Answer care questions | Infinite | Navigation Agent |
+
+The question before adding AI to any feature:
+*Is the output space finite or infinite?*
+
+If finite — build it deterministically.
+If infinite — that is where an agent earns its place.
+
+
+
+---
+
+
 ## Data Flow (MVP)
 User taps + button or speaks
 

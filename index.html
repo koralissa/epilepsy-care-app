@@ -91,6 +91,11 @@
         <div id="insights-body" class="view-body"></div>
       </div>
 
+      <!-- DEV ONLY: remove before demo -->
+      <div class="dev-reset-bar">
+        <button class="dev-reset-btn" onclick="localStorage.clear(); location.reload()">Reset onboarding</button>
+      </div>
+
       <!-- Bottom nav -->
       <nav class="bottom-nav" aria-label="Main navigation">
         <button class="nav-btn active" data-view="home">
@@ -257,6 +262,22 @@
             </div>
           </section>
 
+          <!-- Device (revealed by profile if user has neurostimulator) -->
+          <section class="form-section" id="device-section" hidden>
+            <h3 class="form-section-label">
+              Device activated?
+              <span class="optional-tag">optional</span>
+            </h3>
+            <div class="chip-row">
+              <input type="radio" name="device-used" id="dev-yes"  value="Yes"            class="sr-only">
+              <label for="dev-yes"  class="chip">Yes</label>
+              <input type="radio" name="device-used" id="dev-no"   value="No"             class="sr-only">
+              <label for="dev-no"   class="chip">No</label>
+              <input type="radio" name="device-used" id="dev-auto" value="Auto-activated" class="sr-only">
+              <label for="dev-auto" class="chip">Auto-activated</label>
+            </div>
+          </section>
+
           <!-- Notes -->
           <section class="form-section">
             <h3 class="form-section-label">
@@ -268,6 +289,7 @@
               name="notes"
               class="input-field input-notes"
               placeholder="Before it started, any warnings, how you feel now…"
+              data-caregiver-placeholder="Before it started, any warnings, how they felt…"
               rows="3"
               autocomplete="off"
             ></textarea>
@@ -380,9 +402,197 @@
           <path d="M16 28l8 8 16-16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <p class="success-heading">Logged.</p>
-        <p class="success-sub">Rest now.</p>
+        <p class="success-sub" data-caregiver-text="They may need to rest.">Rest now.</p>
       </div>
     </div>
+
+    <!-- ── Onboarding ─────────────────────────── -->
+    <div id="screen-onboarding" class="ob-shell" role="dialog" aria-modal="true" aria-label="Welcome to Vivea">
+
+      <header class="ob-header">
+        <button class="ob-back" id="ob-back" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span class="ob-step" id="ob-step">Step 1 of 7</span>
+        <div class="ob-header-end"></div>
+      </header>
+      <div class="ob-progress-track">
+        <div class="ob-progress-fill" id="ob-progress-fill"></div>
+      </div>
+
+      <div class="ob-screens" id="ob-screens">
+
+        <!-- Screen 1: Who are you? -->
+        <section class="ob-screen" id="ob-s1">
+          <div class="ob-content">
+            <div class="ob-hero">
+              <h1 class="ob-title">Welcome to Vivea</h1>
+              <p class="ob-subtitle">Let's personalize your experience</p>
+            </div>
+            <div class="ob-options">
+              <input type="radio" name="ob-who" id="ob-who-new"    value="newly_diagnosed" class="sr-only">
+              <label for="ob-who-new" class="ob-option">
+                <span class="ob-option-main">Newly diagnosed</span>
+                <span class="ob-option-sub">Diagnosed less than 6 months ago</span>
+              </label>
+              <input type="radio" name="ob-who" id="ob-who-living" value="living" class="sr-only">
+              <label for="ob-who-living" class="ob-option">
+                <span class="ob-option-main">Living with epilepsy</span>
+                <span class="ob-option-sub">Diagnosed 6 months or more ago</span>
+              </label>
+              <input type="radio" name="ob-who" id="ob-who-carer"  value="caregiver" class="sr-only">
+              <label for="ob-who-carer" class="ob-option">
+                <span class="ob-option-main">I'm a caregiver</span>
+                <span class="ob-option-sub">Logging on behalf of someone else</span>
+              </label>
+            </div>
+          </div>
+          <div class="ob-footer">
+            <button class="ob-btn-next" id="ob-next-1" disabled>Next</button>
+          </div>
+        </section>
+
+        <!-- Screen 2: Seizure types -->
+        <section class="ob-screen" id="ob-s2">
+          <div class="ob-content">
+            <div class="ob-hero">
+              <h1 class="ob-title">What type of seizures do you have?</h1>
+            </div>
+            <div class="chip-row">
+              <input type="checkbox" name="ob-types" id="ob-t-tc"  value="Tonic-clonic"   class="sr-only"><label for="ob-t-tc"  class="chip">Tonic-clonic</label>
+              <input type="checkbox" name="ob-types" id="ob-t-abs" value="Absence"        class="sr-only"><label for="ob-t-abs" class="chip">Absence</label>
+              <input type="checkbox" name="ob-types" id="ob-t-fa"  value="Focal aware"    class="sr-only"><label for="ob-t-fa"  class="chip">Focal aware</label>
+              <input type="checkbox" name="ob-types" id="ob-t-fi"  value="Focal impaired" class="sr-only"><label for="ob-t-fi"  class="chip">Focal impaired</label>
+              <input type="checkbox" name="ob-types" id="ob-t-myo" value="Myoclonic"      class="sr-only"><label for="ob-t-myo" class="chip">Myoclonic</label>
+              <input type="checkbox" name="ob-types" id="ob-t-mul" value="Multiple types" class="sr-only"><label for="ob-t-mul" class="chip">Multiple types</label>
+              <input type="checkbox" name="ob-types" id="ob-t-unk" value="Not sure yet"   class="sr-only"><label for="ob-t-unk" class="chip">Not sure yet</label>
+            </div>
+            <p class="ob-helper" id="ob-s2-helper" hidden>Not sure yet is completely fine — your neurologist will help identify this.</p>
+          </div>
+          <div class="ob-footer">
+            <button class="ob-btn-next" id="ob-next-2">Next</button>
+            <button class="ob-btn-skip" id="ob-skip-2">Skip</button>
+          </div>
+        </section>
+
+        <!-- Screen 3: Medications -->
+        <section class="ob-screen" id="ob-s3">
+          <div class="ob-content">
+            <div class="ob-hero">
+              <h1 class="ob-title">Are you taking seizure medications?</h1>
+            </div>
+            <div class="ob-options">
+              <input type="radio" name="ob-meds" id="ob-med-yes"  value="yes"     class="sr-only">
+              <label for="ob-med-yes" class="ob-option"><span class="ob-option-main">Yes</span></label>
+              <input type="radio" name="ob-meds" id="ob-med-not"  value="not_yet" class="sr-only">
+              <label for="ob-med-not" class="ob-option"><span class="ob-option-main">Not yet</span></label>
+              <input type="radio" name="ob-meds" id="ob-med-skip" value="skip"    class="sr-only">
+              <label for="ob-med-skip" class="ob-option"><span class="ob-option-main">Skip for now</span></label>
+            </div>
+            <div id="ob-med-inputs" class="ob-med-inputs" hidden>
+              <input type="text" id="ob-med-0" class="input-field ob-med-input" placeholder="Medication name (e.g. Keppra)" autocomplete="off" autocapitalize="words">
+              <div id="ob-med-extra"></div>
+              <button type="button" id="ob-med-add" class="ob-btn-add">+ Add another</button>
+            </div>
+          </div>
+          <div class="ob-footer">
+            <button class="ob-btn-next" id="ob-next-3">Next</button>
+          </div>
+        </section>
+
+        <!-- Screen 4: Triggers -->
+        <section class="ob-screen" id="ob-s4">
+          <div class="ob-content">
+            <div class="ob-hero">
+              <h1 class="ob-title">Do you know what triggers your seizures?</h1>
+            </div>
+            <div class="chip-row">
+              <input type="checkbox" name="ob-triggers" id="ob-tr-stress" value="Stress"          class="sr-only"><label for="ob-tr-stress" class="chip">Stress</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-sleep"  value="Poor sleep"      class="sr-only"><label for="ob-tr-sleep"  class="chip">Poor sleep</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-meds"   value="Missed meds"     class="sr-only"><label for="ob-tr-meds"   class="chip">Missed meds</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-ill"    value="Illness/fever"   class="sr-only"><label for="ob-tr-ill"    class="chip">Illness/fever</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-dehyd"  value="Dehydration"     class="sr-only"><label for="ob-tr-dehyd"  class="chip">Dehydration</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-bg"     value="Low blood sugar" class="sr-only"><label for="ob-tr-bg"     class="chip">Low blood sugar</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-alc"    value="Alcohol"         class="sr-only"><label for="ob-tr-alc"    class="chip">Alcohol</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-flash"  value="Flashing lights" class="sr-only"><label for="ob-tr-flash"  class="chip">Flashing lights</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-caff"   value="Caffeine"        class="sr-only"><label for="ob-tr-caff"   class="chip">Caffeine</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-horm"   value="Hormonal/cycle"  class="sr-only"><label for="ob-tr-horm"   class="chip">Hormonal/cycle</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-heat"   value="Hot weather"     class="sr-only"><label for="ob-tr-heat"   class="chip">Hot weather</label>
+              <input type="checkbox" name="ob-triggers" id="ob-tr-other"  value="Other"           class="sr-only"><label for="ob-tr-other"  class="chip">Other</label>
+            </div>
+            <div class="ob-exclusive-row">
+              <input type="checkbox" id="ob-tr-none" class="sr-only">
+              <label for="ob-tr-none" class="ob-exclusive-label">I don't know yet</label>
+            </div>
+            <p class="ob-helper" id="ob-s4-helper" hidden>Triggers are things that make seizures more likely. You'll discover yours over time — Vivea will help identify them.</p>
+          </div>
+          <div class="ob-footer">
+            <button class="ob-btn-next" id="ob-next-4">Next</button>
+            <button class="ob-btn-skip" id="ob-skip-4">Skip</button>
+          </div>
+        </section>
+
+        <!-- Screen 5: Cycle tracking (skipped for caregivers) -->
+        <section class="ob-screen" id="ob-s5">
+          <div class="ob-content">
+            <div class="ob-hero">
+              <h1 class="ob-title">Track hormonal triggers?</h1>
+              <p class="ob-subtitle">Hormonal changes are a common seizure trigger — especially around the menstrual cycle.</p>
+            </div>
+            <div class="ob-options">
+              <input type="radio" name="ob-cycle" id="ob-cyc-yes" value="yes" class="sr-only">
+              <label for="ob-cyc-yes" class="ob-option"><span class="ob-option-main">Yes, track my cycle</span></label>
+              <input type="radio" name="ob-cycle" id="ob-cyc-no"  value="no"  class="sr-only">
+              <label for="ob-cyc-no"  class="ob-option"><span class="ob-option-main">No thanks</span></label>
+            </div>
+          </div>
+          <div class="ob-footer">
+            <button class="ob-btn-next" id="ob-next-5">Next</button>
+          </div>
+        </section>
+
+        <!-- Screen 6: Device -->
+        <section class="ob-screen" id="ob-s6">
+          <div class="ob-content">
+            <div class="ob-hero">
+              <h1 class="ob-title">Do you use an epilepsy device?</h1>
+              <p class="ob-subtitle">VNS, RNS, DBS, or other neurostimulation device</p>
+            </div>
+            <div class="ob-options">
+              <input type="radio" name="ob-device" id="ob-dev-yes" value="yes" class="sr-only">
+              <label for="ob-dev-yes" class="ob-option"><span class="ob-option-main">Yes</span></label>
+              <input type="radio" name="ob-device" id="ob-dev-no"  value="no"  class="sr-only">
+              <label for="ob-dev-no"  class="ob-option"><span class="ob-option-main">No</span></label>
+            </div>
+            <div id="ob-device-types" class="chip-row" hidden>
+              <input type="radio" name="ob-device-type" id="ob-dt-vns"   value="VNS"   class="sr-only"><label for="ob-dt-vns"   class="chip">VNS (vagus nerve)</label>
+              <input type="radio" name="ob-device-type" id="ob-dt-rns"   value="RNS"   class="sr-only"><label for="ob-dt-rns"   class="chip">RNS (responsive neuro)</label>
+              <input type="radio" name="ob-device-type" id="ob-dt-dbs"   value="DBS"   class="sr-only"><label for="ob-dt-dbs"   class="chip">DBS (deep brain)</label>
+              <input type="radio" name="ob-device-type" id="ob-dt-oth"   value="Other" class="sr-only"><label for="ob-dt-oth"   class="chip">Other</label>
+            </div>
+          </div>
+          <div class="ob-footer">
+            <button class="ob-btn-next" id="ob-next-6">Next</button>
+            <button class="ob-btn-skip" id="ob-skip-6">Skip</button>
+          </div>
+        </section>
+
+        <!-- Screen 7: Done -->
+        <section class="ob-screen" id="ob-s7">
+          <div class="ob-content ob-content-done">
+            <div class="ob-done-ring">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <h1 class="ob-title">You're all set</h1>
+            <p class="ob-subtitle">Vivea is ready. Log your first event whenever you need it.</p>
+          </div>
+          <div class="ob-footer">
+            <button class="ob-btn-next" id="ob-finish">Start using Vivea</button>
+          </div>
+        </section>
+
+      </div><!-- /.ob-screens -->
+    </div><!-- /#screen-onboarding -->
 
   </div><!-- /.app-shell -->
   <script src="app.js"></script>

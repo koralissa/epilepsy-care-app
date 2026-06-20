@@ -1,6 +1,12 @@
 'use strict';
 
-const STORAGE_KEY = 'epitrack_entries';
+const STORAGE_KEY    = 'epitrack_entries';
+const OB_DONE_KEY    = 'vivea_onboarded';
+const OB_PROFILE_KEY = 'vivea_profile';
+
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem(OB_PROFILE_KEY)); } catch { return null; }
+}
 
 // ── Storage ───────────────────────────────────
 function getEntries() {
@@ -25,7 +31,7 @@ function switchTab(tabName) {
   document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === tabName);
   });
-  if (tabName === 'insights') renderInsights();
+  if (tabName === 'insights') { renderInsights(); showHint('insights'); }
   else renderHome();
 }
 
@@ -35,6 +41,7 @@ function openLog() {
   modal.classList.add('active');
   modal.removeAttribute('aria-hidden');
   resetForm();
+  showHint('seizure');
 }
 
 function closeLog() {
@@ -46,8 +53,14 @@ function closeLog() {
 // ── Form ──────────────────────────────────────
 function resetForm() {
   document.getElementById('seizure-form').reset();
-  // form.reset() restores "Not sure" (has checked in HTML) and clears checkboxes/textarea
   document.getElementById('seizure-time').value = localISO();
+  // Pre-select seizure type from profile if exactly one was set
+  const profile = getProfile();
+  if (profile && profile.seizureTypes && profile.seizureTypes.length === 1) {
+    const val = profile.seizureTypes[0];
+    const input = document.querySelector(`input[name="type"][value="${val}"]`);
+    if (input) input.checked = true;
+  }
 }
 
 function localISO() {
@@ -425,6 +438,8 @@ function openQuickLog(cat) {
   const modal = document.getElementById('screen-quick-log');
   modal.classList.add('active');
   modal.removeAttribute('aria-hidden');
+  const hintKey = cat === 'Side effect' ? 'side-effect' : cat.toLowerCase();
+  showHint(hintKey);
 }
 
 function closeQuickLog() {
@@ -474,6 +489,7 @@ document.getElementById('seizure-form').addEventListener('submit', e => {
     intensity: fd.get('intensity') || '',
     duration: fd.get('duration') || '',
     triggers: fd.getAll('triggers'),
+    deviceUsed: fd.get('device-used') || '',
     notes: String(fd.get('notes') || '').trim(),
   });
   closeLog();
@@ -517,7 +533,287 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 
+// ── Onboarding ─────────────────────────────────
+let obIdx = 0;
+
+function obGetFlow() {
+  const who = document.querySelector('input[name="ob-who"]:checked');
+  return (who && who.value === 'caregiver') ? [1,2,3,4,6,7] : [1,2,3,4,5,6,7];
+}
+
+function obUpdateHeader() {
+  const flow = obGetFlow();
+  const total = flow.length;
+  const current = obIdx + 1;
+  document.getElementById('ob-step').textContent = `Step ${current} of ${total}`;
+  document.getElementById('ob-back').style.visibility = obIdx === 0 ? 'hidden' : 'visible';
+  document.getElementById('ob-progress-fill').style.width = `${Math.round((current / total) * 100)}%`;
+}
+
+function obNavigate(nextIdx, direction) {
+  const flow = obGetFlow();
+  const fromEl = document.getElementById(`ob-s${flow[obIdx]}`);
+  const toEl   = document.getElementById(`ob-s${flow[nextIdx]}`);
+
+  // Place incoming at its start position without transition
+  toEl.style.transition = 'none';
+  toEl.style.transform  = direction === 'forward' ? 'translateX(100%)' : 'translateX(-30%)';
+  toEl.style.opacity    = '0';
+  toEl.style.pointerEvents = 'none';
+
+  // Force reflow
+  toEl.getBoundingClientRect();
+
+  // Re-enable transitions and animate both screens
+  toEl.style.transition = '';
+  fromEl.style.transform    = direction === 'forward' ? 'translateX(-30%)' : 'translateX(100%)';
+  fromEl.style.opacity      = '0';
+  fromEl.style.pointerEvents = 'none';
+  toEl.style.transform    = 'translateX(0)';
+  toEl.style.opacity      = '1';
+  toEl.style.pointerEvents = 'auto';
+
+  obIdx = nextIdx;
+  obUpdateHeader();
+  obOnArrive(flow[nextIdx]);
+}
+
+function obOnArrive(screenNum) {
+  if (screenNum === 2) {
+    const who = document.querySelector('input[name="ob-who"]:checked');
+    document.getElementById('ob-s2-helper').hidden = !(who && who.value === 'newly_diagnosed');
+    // Recalculate total now that we know user type
+    obUpdateHeader();
+  }
+  if (screenNum === 4) {
+    const who = document.querySelector('input[name="ob-who"]:checked');
+    document.getElementById('ob-s4-helper').hidden = !(who && who.value === 'newly_diagnosed');
+  }
+}
+
+function obGoNext() {
+  const flow = obGetFlow();
+  if (obIdx < flow.length - 1) obNavigate(obIdx + 1, 'forward');
+}
+
+function obGoBack() {
+  if (obIdx > 0) obNavigate(obIdx - 1, 'back');
+}
+
+let obMedCount = 1;
+
+function obAddMed() {
+  if (obMedCount >= 3) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = `ob-med-${obMedCount}`;
+  input.className = 'input-field ob-med-input';
+  input.placeholder = 'Medication name';
+  input.autocomplete = 'off';
+  input.autocapitalize = 'words';
+  document.getElementById('ob-med-extra').appendChild(input);
+  obMedCount++;
+  if (obMedCount >= 3) document.getElementById('ob-med-add').hidden = true;
+}
+
+function obCollectProfile() {
+  const who = document.querySelector('input[name="ob-who"]:checked');
+  const meds = document.querySelector('input[name="ob-meds"]:checked');
+  const cycle = document.querySelector('input[name="ob-cycle"]:checked');
+  const device = document.querySelector('input[name="ob-device"]:checked');
+  const deviceType = document.querySelector('input[name="ob-device-type"]:checked');
+  const noneEl = document.getElementById('ob-tr-none');
+  const dontKnow = noneEl && noneEl.checked;
+
+  const medications = [];
+  for (let i = 0; i < 3; i++) {
+    const el = document.getElementById(`ob-med-${i}`);
+    if (el) { const v = el.value.trim(); if (v) medications.push(v); }
+  }
+
+  return {
+    userType:     who ? who.value : null,
+    seizureTypes: [...document.querySelectorAll('input[name="ob-types"]:checked')].map(i => i.value),
+    takingMeds:   meds ? meds.value : null,
+    medications,
+    triggers:     dontKnow ? [] : [...document.querySelectorAll('input[name="ob-triggers"]:checked')].map(i => i.value),
+    dontKnowTriggers: dontKnow || false,
+    trackCycle:   cycle ? cycle.value : null,
+    hasDevice:    device ? device.value : null,
+    deviceType:   deviceType ? deviceType.value : null,
+  };
+}
+
+function obComplete() {
+  const profile = obCollectProfile();
+  localStorage.setItem(OB_DONE_KEY, 'true');
+  localStorage.setItem(OB_PROFILE_KEY, JSON.stringify(profile));
+
+  const shell = document.getElementById('screen-onboarding');
+  shell.style.opacity = '0';
+  setTimeout(() => { shell.hidden = true; shell.style.opacity = ''; }, 350);
+
+  applyProfile(profile);
+}
+
+// ── Profile application ────────────────────────
+function applyProfile(profile) {
+  if (!profile) return;
+
+  // 1. Trigger chip: replace "Missed meds" label with "Missed [MedName]"
+  if (profile.takingMeds === 'yes' && profile.medications.length > 0) {
+    const name = profile.medications[0];
+    const inp = document.getElementById('tr-meds');
+    const lbl = document.querySelector('label[for="tr-meds"]');
+    if (inp && lbl) { inp.value = `Missed ${name}`; lbl.textContent = `Missed ${name}`; }
+  }
+
+  // 2. Show/hide Hormonal/cycle trigger chip
+  if (profile.trackCycle === 'no' || profile.userType === 'caregiver') {
+    const inp = document.getElementById('tr-horm');
+    const lbl = document.querySelector('label[for="tr-horm"]');
+    if (inp) inp.style.display = 'none';
+    if (lbl) lbl.style.display = 'none';
+  }
+
+  // 3. Show device section if user has a neurostimulator
+  if (profile.hasDevice === 'yes') {
+    const sec = document.getElementById('device-section');
+    if (sec) sec.hidden = false;
+  }
+
+  // 4. Caregiver mode: swap language
+  if (profile.userType === 'caregiver') {
+    document.querySelectorAll('[data-caregiver-placeholder]').forEach(el => {
+      el.placeholder = el.dataset.caregiverPlaceholder;
+    });
+    document.querySelectorAll('[data-caregiver-text]').forEach(el => {
+      el.textContent = el.dataset.caregiverText;
+    });
+  }
+
+  // 5. Newly diagnosed: enable feature hints
+  if (profile.userType === 'newly_diagnosed') {
+    window._viveaHints = true;
+  }
+
+  // Profile stored in localStorage for any future Pattern Agent calls
+}
+
+// ── Feature hints (newly diagnosed) ───────────
+const HINT_TEXT = {
+  seizure:      'Log every seizure, even mild ones — patterns in your data help your doctor adjust treatment.',
+  aura:         'An aura is an early warning sign before a seizure. Logging auras helps identify what to watch for.',
+  'side-effect':'Side effects are important to track. Your doctor needs this to fine-tune your medication.',
+  medication:   'Tracking each dose — scheduled, missed, or rescue — helps show your adherence over time.',
+  insights:     'Your seizure patterns will appear here over time. Share this view with your neurologist.',
+};
+
+function showHint(key) {
+  if (!window._viveaHints) return;
+  const hintKey = `vivea_hint_${key}`;
+  if (localStorage.getItem(hintKey)) return;
+  localStorage.setItem(hintKey, '1');
+
+  const text = HINT_TEXT[key];
+  if (!text) return;
+
+  const targetMap = {
+    seizure:       document.querySelector('#screen-log .form-scroll'),
+    insights:      document.getElementById('view-insights'),
+  };
+  const target = targetMap[key] || document.querySelector('#screen-quick-log .form-scroll');
+  if (!target) return;
+
+  const hint = document.createElement('div');
+  hint.className = 'ob-hint';
+  hint.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>${esc(text)}</span>`;
+  target.prepend(hint);
+
+  setTimeout(() => {
+    hint.style.transition = 'opacity 0.4s ease';
+    hint.style.opacity = '0';
+    setTimeout(() => hint.remove(), 400);
+  }, 6000);
+}
+
+// ── Onboarding event wiring ────────────────────
+(function wireOnboarding() {
+  // Screen 1: enable Next when a selection is made
+  document.querySelectorAll('input[name="ob-who"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('ob-next-1').disabled = false;
+    });
+  });
+
+  // Back button
+  document.getElementById('ob-back').addEventListener('click', obGoBack);
+
+  // Next buttons
+  document.getElementById('ob-next-1').addEventListener('click', obGoNext);
+  document.getElementById('ob-next-2').addEventListener('click', obGoNext);
+  document.getElementById('ob-next-3').addEventListener('click', obGoNext);
+  document.getElementById('ob-next-4').addEventListener('click', obGoNext);
+  document.getElementById('ob-next-5').addEventListener('click', obGoNext);
+  document.getElementById('ob-next-6').addEventListener('click', obGoNext);
+
+  // Skip buttons
+  document.getElementById('ob-skip-2').addEventListener('click', obGoNext);
+  document.getElementById('ob-skip-4').addEventListener('click', obGoNext);
+  document.getElementById('ob-skip-6').addEventListener('click', obGoNext);
+
+  // Finish button (screen 7)
+  document.getElementById('ob-finish').addEventListener('click', obComplete);
+
+  // Screen 3: reveal medication inputs on "Yes"
+  document.getElementById('ob-med-yes').addEventListener('change', () => {
+    document.getElementById('ob-med-inputs').hidden = false;
+  });
+  document.getElementById('ob-med-not').addEventListener('change', () => {
+    document.getElementById('ob-med-inputs').hidden = true;
+  });
+  document.getElementById('ob-med-skip').addEventListener('change', () => {
+    document.getElementById('ob-med-inputs').hidden = true;
+  });
+  document.getElementById('ob-med-add').addEventListener('click', obAddMed);
+
+  // Screen 4: "I don't know yet" exclusive behavior
+  const obTrNone = document.getElementById('ob-tr-none');
+  const obTrAll  = document.querySelectorAll('input[name="ob-triggers"]');
+  obTrNone.addEventListener('change', () => {
+    if (obTrNone.checked) obTrAll.forEach(cb => { cb.checked = false; });
+  });
+  obTrAll.forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) obTrNone.checked = false;
+    });
+  });
+
+  // Screen 6: reveal device type chips on "Yes"
+  document.getElementById('ob-dev-yes').addEventListener('change', () => {
+    document.getElementById('ob-device-types').hidden = false;
+  });
+  document.getElementById('ob-dev-no').addEventListener('change', () => {
+    document.getElementById('ob-device-types').hidden = true;
+  });
+})();
+
 // ── Boot ──────────────────────────────────────
 const greetEl = document.getElementById('greeting');
 if (greetEl) greetEl.textContent = greeting();
 renderHome();
+
+// Show onboarding or apply saved profile
+if (localStorage.getItem(OB_DONE_KEY)) {
+  document.getElementById('screen-onboarding').hidden = true;
+  applyProfile(getProfile());
+} else {
+  // Init screen 1 at translateX(0), all others off to the right
+  const obScreens = document.querySelectorAll('.ob-screen');
+  obScreens.forEach((el, i) => {
+    el.style.transform   = i === 0 ? 'translateX(0)'   : 'translateX(100%)';
+    el.style.opacity     = i === 0 ? '1'               : '0';
+    el.style.pointerEvents = i === 0 ? 'auto' : 'none';
+  });
+  obUpdateHeader();
+}
