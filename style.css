@@ -1,18 +1,30 @@
 /* ── Design tokens ───────────────────────────── */
 :root {
-  --magenta:   #B71286;
-  --blue:      #00B2CB;
-  --blue-dk:   #0099AE;
-  --purple:    #5B2096;
-  --purple-lt: #D5C2DF;
-  --bg:        #FFFFFF;
-  --text:      #172B4D;
-  --text-sec:  #44546F;
-  --border:    #D5C2DF;
-  --border-lt: #EDE8F5;
-  --radius:    16px;
-  --radius-sm: 8px;
-  --nav-h:     64px;
+  /* Purple family — deepest at edges, lightest in content */
+  --purple-900: #5B2096;
+  --purple-700: #7B4BB8;
+  --purple-500: #905CAD;
+  --purple-200: #D5C2DF;
+  --purple-50:  #F5F0FF;
+
+  /* Accent */
+  --magenta:    #B71286;
+
+  /* Primary action */
+  --blue:       #00B2CB;
+  --blue-dk:    #0099AE;
+
+  /* Text */
+  --navy:       #172B4D;
+  --text-sec:   #44546F;
+
+  /* Canvas */
+  --white:      #FFFFFF;
+
+  /* Scale */
+  --radius:     16px;
+  --radius-sm:  8px;
+  --nav-h:      64px;
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --ease: 0.12s ease;
 }
@@ -25,14 +37,14 @@ fieldset { border: none; }
 html {
   font-family: var(--font);
   font-size: 16px;
-  color: var(--text);
+  color: var(--navy);
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
   color-scheme: light;
 }
 
 body {
-  background: var(--border-lt);
+  background: var(--purple-50);
   display: flex;
   justify-content: center;
   min-height: 100dvh;
@@ -46,7 +58,7 @@ body {
   height: 100dvh;
   overflow: hidden;
   flex-shrink: 0;
-  background: var(--bg);
+  background: var(--white);
 }
 
 /* ── Screen / tabs ───────────────────────────── */
@@ -66,13 +78,13 @@ body {
   flex-direction: column;
 }
 
-/* ── App header ──────────────────────────────── */
+/* ── App header (deepest purple) ─────────────── */
 .app-header {
   flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--purple);
+  background: var(--purple-900);
 }
 
 .header-inner {
@@ -92,7 +104,7 @@ body {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: #fff;
+  color: var(--white);
   line-height: 1;
 }
 
@@ -109,7 +121,7 @@ body {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #fff;
+  color: var(--white);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -120,7 +132,7 @@ body {
 
 .profile-btn:active { background: rgba(255, 255, 255, 0.22); }
 
-/* ── EEG strip (static, header only) ────────── */
+/* ── EEG strip (static, white at 20% opacity) ── */
 .eeg-strip {
   height: 24px;
   overflow: hidden;
@@ -151,8 +163,8 @@ body {
 }
 
 .stat-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--white);
+  border: 1px solid var(--purple-200);
   border-radius: var(--radius);
   padding: 16px;
   display: flex;
@@ -183,7 +195,7 @@ body {
   width: 100%;
   padding: 16px 24px;
   background: var(--blue);
-  color: #fff;
+  color: var(--white);
   font-family: var(--font);
   font-size: 16px;
   font-weight: 600;
@@ -203,7 +215,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: var(--text-sec);
+  color: var(--purple-700);
   margin-bottom: 12px;
 }
 
@@ -226,8 +238,8 @@ body {
 
 /* ── Entry card ──────────────────────────────── */
 .entry-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--white);
+  border: 1px solid var(--purple-200);
   border-radius: var(--radius);
   padding: 16px;
   display: flex;
@@ -246,7 +258,7 @@ body {
 .entry-type-badge {
   font-size: 15px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--navy);
   flex: 1;
 }
 
@@ -284,9 +296,9 @@ body {
 .entry-trigger-pill {
   font-size: 11px;
   font-weight: 500;
-  color: var(--purple);
-  background: rgba(91, 32, 150, 0.06);
-  border: 1px solid rgba(91, 32, 150, 0.16);
+  color: var(--purple-700);
+  background: var(--purple-50);
+  border: 1px solid var(--purple-200);
   padding: 2px 8px;
   border-radius: 100px;
 }
@@ -299,11 +311,11 @@ body {
   margin-top: 2px;
 }
 
-/* ── Bottom navigation ───────────────────────── */
+/* ── Bottom nav (deepest purple) ─────────────── */
 .bottom-nav {
   flex-shrink: 0;
   height: var(--nav-h);
-  background: var(--purple);
+  background: var(--purple-900);
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   align-items: center;
@@ -339,14 +351,14 @@ body {
   letter-spacing: 0.2px;
 }
 
-/* Log button always magenta — primary action anchor */
+/* Log button: magenta always — the brand spark in the nav */
 .nav-log-btn { color: var(--magenta); }
 
 /* ── Log modal ───────────────────────────────── */
 .screen-modal {
   position: absolute;
   inset: 0;
-  background: var(--bg);
+  background: var(--white);
   display: flex;
   flex-direction: column;
   z-index: 50;
@@ -363,7 +375,7 @@ body {
 .modal-handle {
   width: 36px;
   height: 4px;
-  background: var(--border);
+  background: var(--purple-200);
   border-radius: 2px;
   margin: 10px auto 0;
   flex-shrink: 0;
@@ -373,7 +385,7 @@ body {
   display: flex;
   align-items: center;
   padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--border-lt);
+  border-bottom: 1px solid var(--purple-50);
   flex-shrink: 0;
 }
 
@@ -398,7 +410,7 @@ body {
   text-align: center;
   font-size: 16px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--navy);
 }
 
 .modal-spacer { min-width: 64px; }
@@ -414,7 +426,7 @@ body {
 
 .form-section {
   padding: 20px 16px;
-  border-bottom: 1px solid var(--border-lt);
+  border-bottom: 1px solid var(--purple-50);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -425,7 +437,7 @@ body {
 .form-section-label {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--navy);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -444,9 +456,9 @@ body {
   padding: 12px 14px;
   font-family: var(--font);
   font-size: 16px;
-  color: var(--text);
-  background: var(--bg);
-  border: 1.5px solid var(--border);
+  color: var(--navy);
+  background: var(--white);
+  border: 1.5px solid var(--purple-200);
   border-radius: var(--radius-sm);
   min-height: 48px;
   appearance: none;
@@ -494,9 +506,9 @@ body {
   font-family: var(--font);
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-sec);
-  background: var(--bg);
-  border: 1.5px solid var(--border);
+  color: var(--purple-500);
+  background: var(--white);
+  border: 1.5px solid var(--purple-500);
   border-radius: 100px;
   cursor: pointer;
   min-height: 40px;
@@ -509,9 +521,9 @@ body {
 
 input[type="radio"]:checked + .chip,
 input[type="checkbox"]:checked + .chip {
-  background: var(--purple);
-  border-color: var(--purple);
-  color: #fff;
+  background: var(--purple-700);
+  border-color: var(--purple-700);
+  color: var(--white);
   font-weight: 600;
 }
 
@@ -529,7 +541,7 @@ input[type="checkbox"]:focus-visible + .chip {
   width: 100%;
   padding: 16px 24px;
   background: var(--blue);
-  color: #fff;
+  color: var(--white);
   font-family: var(--font);
   font-size: 16px;
   font-weight: 600;
@@ -551,8 +563,8 @@ input[type="checkbox"]:focus-visible + .chip {
 }
 
 .insight-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--white);
+  border: 1px solid var(--purple-200);
   border-radius: var(--radius);
   padding: 16px 8px;
   text-align: center;
@@ -573,7 +585,7 @@ input[type="checkbox"]:focus-visible + .chip {
   font-size: 12px;
   letter-spacing: 0;
   padding-top: 4px;
-  color: var(--text);
+  color: var(--navy);
   font-weight: 600;
 }
 
@@ -586,8 +598,8 @@ input[type="checkbox"]:focus-visible + .chip {
 }
 
 .top-trigger-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--white);
+  border: 1px solid var(--purple-200);
   border-radius: var(--radius);
   padding: 16px;
   display: flex;
@@ -598,7 +610,7 @@ input[type="checkbox"]:focus-visible + .chip {
 .top-trigger-name {
   font-size: 15px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--navy);
   flex: 1;
 }
 
@@ -613,7 +625,7 @@ input[type="checkbox"]:focus-visible + .chip {
 .month-heading {
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-sec);
+  color: var(--purple-700);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin-bottom: 8px;
@@ -651,7 +663,7 @@ input[type="checkbox"]:focus-visible + .chip {
 .empty-insights-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--navy);
 }
 
 .empty-insights-sub {
@@ -660,18 +672,18 @@ input[type="checkbox"]:focus-visible + .chip {
   line-height: 1.65;
 }
 
-/* ── Success overlay ─────────────────────────── */
+/* ── Success overlay (deepest purple) ────────── */
 .success-overlay {
   position: absolute;
   inset: 0;
-  background: var(--purple);
+  background: var(--purple-900);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
 }
 
-.success-inner { text-align: center; color: #fff; }
+.success-inner { text-align: center; color: var(--white); }
 
 .success-check {
   width: 72px;
