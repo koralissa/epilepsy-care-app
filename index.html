@@ -4,39 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="description" content="Simple, fast seizure logging for epilepsy management">
-  <meta name="theme-color" content="#4A25B3">
+  <meta name="theme-color" content="#5B2096">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Vivea">
   <title>Vivea</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app-shell">
 
-    <!-- ── Main (Home & Insights via tabs) ───────────── -->
+    <!-- ── Main screen ─────────────────────── -->
     <div id="screen-main">
-
-      <!-- EEG brain-activity background texture (single wave) -->
-      <div class="eeg-bg" aria-hidden="true">
-        <svg class="eeg-bg-svg" viewBox="0 0 390 800" preserveAspectRatio="xMidYMid slice" fill="none">
-          <path stroke="#0496BD" stroke-width="2" stroke-linecap="round"
-                d="M-20,400 C18,378 47,378 65,400 C83,422 112,422 130,400 C148,378 177,378 195,400 C213,422 242,422 260,400 C278,378 307,378 325,400 C343,422 372,422 390,400 C408,378 428,378 445,400"/>
-        </svg>
-      </div>
 
       <!-- Home tab -->
       <div id="view-home" class="tab-view">
         <header class="app-header">
-          <div class="header-inner header-inner--nav">
+          <div class="header-inner">
+            <div class="header-brand">
+              <h1 class="brand">Vivea</h1>
+              <p id="greeting" class="header-greeting"></p>
+            </div>
             <button class="profile-btn" aria-label="Profile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-                <circle cx="12" cy="8" r="4"/>
-                <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/>
+              <!-- Lucide: user -->
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
               </svg>
             </button>
           </div>
+          <!-- Single static EEG line, white at 20% opacity -->
           <div class="eeg-strip" aria-hidden="true">
             <svg class="eeg-wave" viewBox="0 0 800 32" preserveAspectRatio="none" fill="none">
               <defs>
@@ -50,32 +51,29 @@
         </header>
 
         <div class="view-body">
-
-          <!-- Brand hero card -->
-          <div class="brand-hero">
-            <p id="greeting" class="brand-hero-greeting"></p>
-            <p class="brand-hero-name">Vivea</p>
-            <p class="brand-hero-tagline">Thrive.</p>
-          </div>
-
-          <button id="btn-log" class="btn-log-hero">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-            Log Seizure
-          </button>
-
+          <!-- Stats -->
           <div class="stats-row">
-            <div class="stat-card">
-              <span class="stat-num" id="stat-month">0</span>
-              <span class="stat-label">This month</span>
-            </div>
             <div class="stat-card">
               <span class="stat-num" id="stat-last">—</span>
               <span class="stat-label">Days since last</span>
             </div>
+            <div class="stat-card">
+              <span class="stat-num" id="stat-month">0</span>
+              <span class="stat-label">This month</span>
+            </div>
           </div>
 
+          <!-- Quick log -->
+          <button id="btn-log" class="btn-log-hero">
+            <!-- Lucide: plus -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14"/>
+              <path d="M12 5v14"/>
+            </svg>
+            Log Seizure
+          </button>
+
+          <!-- Recent entries -->
           <section aria-labelledby="recent-heading">
             <h2 id="recent-heading" class="section-label">Recent</h2>
             <div id="entries-list" role="list"></div>
@@ -96,31 +94,38 @@
       <!-- Bottom nav -->
       <nav class="bottom-nav" aria-label="Main navigation">
         <button class="nav-btn active" data-view="home">
-          <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 9.5L12 3l9 6.5V21H15v-6h-6v6H3V9.5z"/>
+          <!-- Lucide: house -->
+          <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
+            <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           </svg>
           <span class="nav-label">Home</span>
         </button>
 
-        <button class="nav-btn nav-log-btn" id="nav-log-btn" aria-label="Log seizure">
-          <div class="nav-log-circle" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </div>
+        <button class="nav-btn nav-log-btn" id="nav-log-btn">
+          <!-- Lucide: circle-plus -->
+          <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 12h8"/>
+            <path d="M12 8v8"/>
+          </svg>
           <span class="nav-label">Log</span>
         </button>
 
         <button class="nav-btn" data-view="insights">
-          <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <path d="M18 20V10M12 20V4M6 20v-6"/>
+          <!-- Lucide: chart-column-increasing -->
+          <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3v18h18"/>
+            <path d="M18 17V9"/>
+            <path d="M13 17V5"/>
+            <path d="M8 17v-3"/>
           </svg>
           <span class="nav-label">Insights</span>
         </button>
       </nav>
     </div>
 
-    <!-- ── Log modal (slides up) ─────────────────────── -->
+    <!-- ── Log modal (slides up) ────────────── -->
     <div id="screen-log" class="screen-modal" aria-hidden="true">
       <div class="modal-handle" aria-hidden="true"></div>
       <header class="modal-header">
@@ -157,38 +162,8 @@
               <input type="radio" name="type" id="t-myo" value="Myoclonic"      class="sr-only">
               <label for="t-myo" class="chip">Myoclonic</label>
 
-              <input type="radio" name="type" id="t-ato" value="Atonic"         class="sr-only">
-              <label for="t-ato" class="chip">Atonic (drop)</label>
-
               <input type="radio" name="type" id="t-unk" value="Unknown"        class="sr-only" checked>
               <label for="t-unk" class="chip">Not sure</label>
-            </div>
-          </section>
-
-          <!-- Intensity -->
-          <section class="form-section">
-            <h3 class="form-section-label">
-              How intense?
-              <span class="optional-tag">optional</span>
-            </h3>
-            <div class="intensity-row">
-              <input type="radio" name="intensity" id="i-mild"     value="Mild"     class="sr-only">
-              <label for="i-mild" class="intensity-chip">
-                <span class="intensity-emoji">😐</span>
-                <span class="intensity-label">Mild</span>
-              </label>
-
-              <input type="radio" name="intensity" id="i-moderate" value="Moderate" class="sr-only">
-              <label for="i-moderate" class="intensity-chip">
-                <span class="intensity-emoji">😟</span>
-                <span class="intensity-label">Moderate</span>
-              </label>
-
-              <input type="radio" name="intensity" id="i-severe"   value="Severe"   class="sr-only">
-              <label for="i-severe" class="intensity-chip">
-                <span class="intensity-emoji">😰</span>
-                <span class="intensity-label">Severe</span>
-              </label>
             </div>
           </section>
 
@@ -216,6 +191,24 @@
 
               <input type="radio" name="duration" id="d-ong" value="Ongoing"  class="sr-only">
               <label for="d-ong" class="chip">Ongoing</label>
+            </div>
+          </section>
+
+          <!-- Intensity -->
+          <section class="form-section">
+            <h3 class="form-section-label">
+              Intensity
+              <span class="optional-tag">optional</span>
+            </h3>
+            <div class="chip-row">
+              <input type="radio" name="intensity" id="i-mild"     value="Mild"     class="sr-only">
+              <label for="i-mild"     class="chip">Mild</label>
+
+              <input type="radio" name="intensity" id="i-moderate" value="Moderate" class="sr-only">
+              <label for="i-moderate" class="chip">Moderate</label>
+
+              <input type="radio" name="intensity" id="i-severe"   value="Severe"   class="sr-only">
+              <label for="i-severe"   class="chip">Severe</label>
             </div>
           </section>
 
@@ -270,12 +263,12 @@
       </div>
     </div>
 
-    <!-- ── Success overlay ────────────────────────────── -->
+    <!-- ── Success overlay ───────────────────── -->
     <div id="success-overlay" class="success-overlay" role="status" aria-live="assertive" hidden>
       <div class="success-inner">
         <svg class="success-check" viewBox="0 0 56 56" fill="none" aria-hidden="true">
           <circle cx="28" cy="28" r="27" stroke="white" stroke-width="2"/>
-          <path class="check-path" d="M16 28l8 8 16-16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 28l8 8 16-16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <p class="success-heading">Logged.</p>
         <p class="success-sub">Rest now.</p>
