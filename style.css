@@ -1385,3 +1385,406 @@ input[type="radio"]:checked + .ob-device-opt .ob-device-desc { display: block; }
   line-height: 1.55;
   font-weight: 500;
 }
+
+/* ── Welcome screen ──────────────────────────── */
+.welcome-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.welcome-inner {
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 72px 32px 52px;
+}
+
+.welcome-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.welcome-logo {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  color: var(--purple-900);
+  margin: 0;
+}
+
+.welcome-eeg {
+  width: 100%;
+  height: 40px;
+  color: var(--purple-500);
+  opacity: 0.25;
+}
+
+.welcome-copy {
+  text-align: center;
+}
+
+.welcome-headline {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 10px;
+  letter-spacing: -0.5px;
+}
+
+.welcome-sub {
+  font-size: 16px;
+  color: var(--text-sec);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  align-items: center;
+}
+
+.welcome-start {
+  width: 100%;
+  padding: 16px;
+  font-size: 17px;
+  border-radius: 14px;
+}
+
+/* ── Account banner ──────────────────────────── */
+.account-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--purple-50);
+  border-bottom: 1px solid var(--purple-200);
+  font-size: 13px;
+  color: var(--navy);
+}
+
+.account-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.account-banner-cta {
+  color: var(--purple-700);
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.account-banner-dismiss {
+  color: var(--text-sec);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Today's medications widget ──────────────── */
+.meds-widget {
+  margin: 0 0 14px;
+  background: var(--white);
+  border: 1.5px solid var(--purple-200);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.meds-widget-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-sec);
+  padding: 12px 16px 6px;
+  margin: 0;
+}
+
+.meds-widget-row {
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--purple-50);
+}
+
+.meds-widget-row:first-of-type { border-top: none; }
+
+.meds-widget-med-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.meds-widget-dose {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-sec);
+}
+
+.meds-widget-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.med-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: none;
+  background: var(--purple-50);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--navy);
+  transition: background 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.med-slot:not([disabled]):active { background: var(--purple-200); }
+
+.med-slot-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.med-slot-label {
+  flex: 1;
+  color: var(--text-sec);
+}
+
+.med-slot-status {
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.med-slot-taken { background: #F0FAF0; }
+.med-slot-taken .med-slot-icon,
+.med-slot-taken .med-slot-label,
+.med-slot-taken .med-slot-status { color: #2E7D32; }
+
+.med-slot-missed { background: #FFF3F0; }
+.med-slot-missed .med-slot-icon,
+.med-slot-missed .med-slot-status { color: #C62828; }
+
+.meds-widget-all-taken {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2E7D32;
+}
+
+/* ── Insights gate ───────────────────────────── */
+#view-insights { position: relative; }
+
+.insights-gate {
+  position: absolute;
+  inset: 0;
+  background: var(--white);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.insights-gate-inner {
+  text-align: center;
+  max-width: 290px;
+}
+
+.insights-gate-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--purple-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: var(--purple-700);
+}
+
+.insights-gate-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 10px;
+  line-height: 1.3;
+}
+
+.insights-gate-sub {
+  font-size: 14px;
+  color: var(--text-sec);
+  line-height: 1.55;
+  margin: 0 0 24px;
+}
+
+.insights-gate-cta {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+/* ── Profile modal ───────────────────────────── */
+#screen-profile {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 92dvh;
+  background: var(--white);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 32px rgba(91,32,150,0.12);
+  z-index: 200;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+#screen-profile.active { transform: translateY(0); pointer-events: auto; }
+
+.profile-empty-state { padding: 24px 0; text-align: center; }
+
+.profile-empty-text {
+  font-size: 14px;
+  color: var(--text-sec);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--purple-50);
+  font-size: 15px;
+}
+
+.profile-row:last-child { border-bottom: none; }
+
+.profile-row-label { color: var(--text-sec); font-size: 14px; }
+
+.profile-row-value { font-weight: 500; color: var(--navy); }
+
+.profile-med-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--purple-50);
+}
+
+.profile-med-row:last-child { border-bottom: none; }
+
+.profile-med-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.profile-med-dose { font-size: 13px; font-weight: 400; color: var(--text-sec); }
+
+.profile-med-freq { font-size: 13px; color: var(--text-sec); margin-top: 2px; }
+
+.profile-cg-card {
+  padding: 12px 14px;
+  background: var(--purple-50);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.profile-cg-name { font-size: 15px; font-weight: 600; color: var(--navy); margin-bottom: 3px; }
+
+.profile-cg-detail { font-size: 13px; color: var(--text-sec); margin-bottom: 3px; }
+
+.profile-cg-pref { font-size: 12px; color: var(--purple-700); font-weight: 500; }
+
+.profile-section-desc { font-size: 14px; color: var(--text-sec); margin: 0 0 12px; line-height: 1.5; }
+
+.caregiver-form { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; }
+
+.form-section-inner { display: flex; flex-direction: column; gap: 6px; }
+
+/* ── Caregiver notify overlay ────────────────── */
+.caregiver-notify {
+  position: fixed;
+  inset: 0;
+  background: rgba(23,43,77,0.45);
+  z-index: 310;
+  display: flex;
+  align-items: flex-end;
+}
+
+.caregiver-notify-card {
+  background: var(--white);
+  border-radius: 20px 20px 0 0;
+  padding: 32px 24px 52px;
+  width: 100%;
+}
+
+.caregiver-notify-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.caregiver-notify-sub {
+  font-size: 14px;
+  color: var(--text-sec);
+  text-align: center;
+  margin: 0 0 28px;
+  line-height: 1.5;
+}
+
+.caregiver-notify-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

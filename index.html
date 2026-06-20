@@ -29,7 +29,7 @@
               <h1 class="brand">Vivea</h1>
               <p id="greeting" class="header-greeting"></p>
             </div>
-            <button class="profile-btn" aria-label="Profile">
+            <button class="profile-btn" id="btn-profile" aria-label="Profile">
               <!-- Lucide: user -->
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
@@ -51,6 +51,15 @@
         </header>
 
         <div class="view-body">
+          <!-- Account backup banner (shown after first log, dismissed per device) -->
+          <div id="account-banner" class="account-banner" hidden>
+            <div class="account-banner-content">
+              <span>Data saved on this device only.</span>
+              <button class="account-banner-cta">Create account</button>
+            </div>
+            <button class="account-banner-dismiss" id="btn-banner-dismiss" aria-label="Dismiss">×</button>
+          </div>
+
           <!-- Stats -->
           <div class="stats-row">
             <div class="stat-card">
@@ -59,9 +68,12 @@
             </div>
             <div class="stat-card">
               <span class="stat-num" id="stat-month">0</span>
-              <span class="stat-label">This month</span>
+              <span class="stat-label" id="stat-month-label">This month</span>
             </div>
           </div>
+
+          <!-- Today's medications widget (shown when profile has scheduled meds) -->
+          <div id="meds-widget" class="meds-widget" hidden></div>
 
           <!-- Quick log -->
           <button id="btn-log" class="btn-log-hero">
@@ -88,6 +100,18 @@
             <h1 class="brand">Insights</h1>
           </div>
         </header>
+        <!-- Account gate (shown per session when no account; "Continue" hides for session) -->
+        <div id="insights-gate" class="insights-gate" hidden>
+          <div class="insights-gate-inner">
+            <div class="insights-gate-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h2 class="insights-gate-title">AI pattern insights require an account</h2>
+            <p class="insights-gate-sub">Connect your logs to unlock trend detection, trigger analysis, and shareable reports for your neurologist.</p>
+            <button class="btn-save insights-gate-cta">Create account</button>
+            <button class="ob-btn-skip" id="btn-insights-continue">Continue without account</button>
+          </div>
+        </div>
         <div id="insights-body" class="view-body"></div>
       </div>
 
@@ -617,6 +641,50 @@
 
       </div><!-- /.ob-screens -->
     </div><!-- /#screen-onboarding -->
+
+    <!-- ── Welcome screen (first launch only) ──── -->
+    <div id="screen-welcome" class="welcome-shell" hidden>
+      <div class="welcome-inner">
+        <div class="welcome-brand">
+          <h1 class="welcome-logo">Vivea</h1>
+          <svg class="welcome-eeg" viewBox="0 0 390 40" preserveAspectRatio="none" fill="none" aria-hidden="true">
+            <path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+              d="M0,20 L20,20 L22,17 L25,11 L29,7 L33,13 L37,25 L41,29 L45,23 L50,20 L65,20 L67,17 L69,14 L71,17 L73,22 L75,20 L82,20 L83,5 L84,1 L85,37 L86,39 L87,20 L105,20 L107,17 L110,11 L114,7 L118,13 L122,25 L126,29 L130,23 L135,20 L148,20 L150,17 L152,14 L154,17 L156,22 L158,20 L165,20 L166,5 L167,1 L168,37 L169,39 L170,20 L188,20 L190,17 L193,11 L197,7 L201,13 L205,25 L209,29 L213,23 L218,20 L231,20 L233,17 L235,14 L237,17 L239,22 L241,20 L248,20 L249,5 L250,1 L251,37 L252,39 L253,20 L271,20 L273,17 L276,11 L280,7 L284,13 L288,25 L292,29 L296,23 L301,20 L314,20 L316,17 L318,14 L320,17 L322,22 L324,20 L331,20 L332,5 L333,1 L334,37 L335,39 L336,20 L355,20 L357,17 L360,11 L364,7 L368,13 L372,24 L375,20 L390,20"/>
+          </svg>
+        </div>
+        <div class="welcome-copy">
+          <p class="welcome-headline">Track what matters.</p>
+          <p class="welcome-sub">Log a seizure, aura, or symptom in seconds — no account needed.</p>
+        </div>
+        <div class="welcome-actions">
+          <button class="btn-save welcome-start" id="btn-start-tracking">Start tracking</button>
+          <button class="ob-btn-skip" id="btn-setup-profile">Set up my profile</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Profile modal (slides up from profile icon) ── -->
+    <div id="screen-profile" class="screen-modal" aria-hidden="true">
+      <div class="modal-handle" aria-hidden="true"></div>
+      <header class="modal-header">
+        <button id="btn-profile-close" class="btn-cancel">Done</button>
+        <h2 class="modal-title">Profile</h2>
+        <div class="modal-spacer" aria-hidden="true"></div>
+      </header>
+      <div class="form-scroll" id="profile-scroll"></div>
+    </div>
+
+    <!-- ── Caregiver notify overlay (shown post-seizure) ── -->
+    <div id="caregiver-notify" class="caregiver-notify" hidden>
+      <div class="caregiver-notify-card">
+        <h2 class="caregiver-notify-title">Notify <span id="caregiver-notify-name">your caregiver</span>?</h2>
+        <p class="caregiver-notify-sub">They'll receive a message that a seizure was logged.</p>
+        <div class="caregiver-notify-actions">
+          <button class="btn-save" id="btn-notify-send">Send notification</button>
+          <button class="ob-btn-skip" id="btn-notify-skip">Skip</button>
+        </div>
+      </div>
+    </div>
 
   </div><!-- /.app-shell -->
   <script src="app.js"></script>

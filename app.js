@@ -3,6 +3,9 @@
 const STORAGE_KEY    = 'epitrack_entries';
 const OB_DONE_KEY    = 'vivea_onboarded';
 const OB_PROFILE_KEY = 'vivea_profile';
+const WELCOME_KEY    = 'vivea_welcomed';
+const BANNER_KEY     = 'vivea_banner_dismissed';
+const MED_LOG_PFX    = 'vivea_meds_';
 
 function getProfile() {
   try { return JSON.parse(localStorage.getItem(OB_PROFILE_KEY)); } catch { return null; }
@@ -24,6 +27,8 @@ function addEntry(entry) {
 }
 
 // ── Tab navigation ────────────────────────────
+let insightsGateDismissed = false;
+
 function switchTab(tabName) {
   document.querySelectorAll('.tab-view').forEach(v => {
     v.hidden = v.id !== `view-${tabName}`;
@@ -31,8 +36,14 @@ function switchTab(tabName) {
   document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === tabName);
   });
-  if (tabName === 'insights') { renderInsights(); showHint('insights'); }
-  else renderHome();
+  if (tabName === 'insights') {
+    const gate = document.getElementById('insights-gate');
+    if (gate) gate.hidden = !!localStorage.getItem('vivea_account') || insightsGateDismissed;
+    renderInsights();
+    showHint('insights');
+  } else {
+    renderHome();
+  }
 }
 
 // ── Log modal ─────────────────────────────────
@@ -72,6 +83,7 @@ function localISO() {
 // ── Render home ───────────────────────────────
 function renderHome() {
   const entries = getEntries();
+  const profile = getProfile();
 
   // Stats
   const now = new Date();
@@ -79,12 +91,23 @@ function renderHome() {
   const thisMonth = entries.filter(e => new Date(e.time) >= startOfMonth).length;
   document.getElementById('stat-month').textContent = String(thisMonth);
 
+  // Seizure-type context in "This month" label
+  const monthLabel = document.getElementById('stat-month-label');
+  if (monthLabel) {
+    const types = profile && profile.seizureTypes;
+    monthLabel.textContent = (types && types.length === 1)
+      ? `${types[0]} this month`
+      : 'This month';
+  }
+
   if (entries.length > 0) {
     const diff = Math.floor((now - new Date(entries[0].time)) / 86_400_000);
     document.getElementById('stat-last').textContent = diff === 0 ? 'Today' : String(diff);
   } else {
     document.getElementById('stat-last').textContent = '—';
   }
+
+  renderMedsWidget();
 
   // Entry list
   const list = document.getElementById('entries-list');
@@ -494,6 +517,8 @@ document.getElementById('seizure-form').addEventListener('submit', e => {
   });
   closeLog();
   showSuccess();
+  showAccountBannerIfNeeded();
+  setTimeout(showCaregiverPrompt, 900);
 });
 
 // Quick log form
@@ -803,20 +828,40 @@ function obComplete() {
   shell.style.opacity = '0';
   setTimeout(() => { shell.hidden = true; shell.style.opacity = ''; }, 350);
 
+  localStorage.setItem(WELCOME_KEY, '1');
   applyProfile(profile);
+  renderHome();
 }
 
 // ── Profile application ────────────────────────
 function applyProfile(profile) {
   if (!profile) return;
 
-  // 1. Trigger chip: replace "Missed meds" label with "Missed [MedName]"
-  if (profile.takingMeds === 'yes' && profile.medications.length > 0) {
-    const med  = profile.medications[0];
-    const name = typeof med === 'object' ? med.name : String(med);
-    const inp  = document.getElementById('tr-meds');
-    const lbl  = document.querySelector('label[for="tr-meds"]');
-    if (inp && lbl) { inp.value = `Missed ${name}`; lbl.textContent = `Missed ${name}`; }
+  // 1. Trigger chip(s): replace "Missed meds" with per-medication chips
+  if (profile.takingMeds === 'yes' && profile.medications && profile.medications.length > 0) {
+    const names = profile.medications
+      .map(m => (typeof m === 'object' ? m.name : String(m)))
+      .filter(Boolean);
+    const inp = document.getElementById('tr-meds');
+    const lbl = document.querySelector('label[for="tr-meds"]');
+    if (inp && lbl && names.length > 0) {
+      inp.value = `Missed ${names[0]}`;
+      lbl.textContent = `Missed ${names[0]}`;
+      // Add extra chips for each additional medication
+      let anchor = lbl;
+      names.slice(1).forEach((name, i) => {
+        const id  = `tr-meds-extra-${i}`;
+        const ni  = document.createElement('input');
+        ni.type   = 'checkbox'; ni.name = 'triggers'; ni.id = id;
+        ni.value  = `Missed ${name}`; ni.className = 'sr-only';
+        const nl  = document.createElement('label');
+        nl.htmlFor = id; nl.className = 'chip';
+        nl.textContent = `Missed ${name}`;
+        anchor.after(nl);
+        anchor.after(ni);
+        anchor = nl;
+      });
+    }
   }
 
   // 2. Show/hide Hormonal/cycle trigger chip
@@ -888,6 +933,298 @@ function showHint(key) {
   }, 6000);
 }
 
+// ── Today's medications widget ────────────────
+function todayDateKey() {
+  const d = new Date();
+  return `${MED_LOG_PFX}${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getMedLog() {
+  try { return JSON.parse(localStorage.getItem(todayDateKey())) || {}; } catch { return {}; }
+}
+
+function saveMedLog(log) {
+  localStorage.setItem(todayDateKey(), JSON.stringify(log));
+}
+
+function markMedTaken(mi, ti) {
+  const log = getMedLog();
+  log[`${mi}_${ti}`] = { taken: true, at: new Date().toISOString() };
+  saveMedLog(log);
+  renderMedsWidget();
+}
+
+function fmt12(h, m) {
+  return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+
+function renderMedsWidget() {
+  const widget = document.getElementById('meds-widget');
+  if (!widget) return;
+
+  const profile = getProfile();
+  if (!profile || profile.takingMeds !== 'yes') { widget.hidden = true; return; }
+
+  const meds = (profile.medications || []).filter(
+    m => typeof m === 'object' && m.timesPerDay > 0 && m.reminders !== false
+  );
+  if (!meds.length) { widget.hidden = true; return; }
+
+  const log    = getMedLog();
+  const now    = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  let total = 0, taken = 0;
+
+  const rows = meds.map((med, mi) => {
+    const name   = esc(med.name || '?');
+    const dose   = med.strength ? esc(`${med.strength}${med.unit || 'mg'}`) : '';
+    const freq   = FREQ_CONFIG[med.timesPerDay];
+    const times  = (med.reminderTimes && med.reminderTimes.length) ? med.reminderTimes : (freq ? freq.defaults : []);
+    const labels = freq ? freq.labels : times.map((_, i) => `Dose ${i+1}`);
+
+    const slots = times.map((t, ti) => {
+      const key   = `${mi}_${ti}`;
+      const isTaken = !!(log[key] && log[key].taken);
+      total++;
+      if (isTaken) taken++;
+
+      const [h, m] = t.split(':').map(Number);
+      const slotMin = h * 60 + m;
+      let icon, statusText, cls;
+      if (isTaken)            { icon = '✓'; statusText = 'Taken';           cls = 'taken'; }
+      else if (nowMin < slotMin) { icon = '○'; statusText = fmt12(h, m);   cls = 'due';   }
+      else                    { icon = '—'; statusText = 'Missed';          cls = 'missed';}
+
+      return `<button class="med-slot med-slot-${cls}" data-mi="${mi}" data-ti="${ti}"${isTaken ? ' disabled aria-disabled="true"' : ''}>
+        <span class="med-slot-icon">${icon}</span>
+        <span class="med-slot-label">${esc(labels[ti] || `Dose ${ti+1}`)}</span>
+        <span class="med-slot-status">${statusText}</span>
+      </button>`;
+    }).join('');
+
+    return `<div class="meds-widget-row">
+      <div class="meds-widget-med-name">${name}${dose ? `<span class="meds-widget-dose">${dose}</span>` : ''}</div>
+      <div class="meds-widget-slots">${slots}</div>
+    </div>`;
+  }).join('');
+
+  widget.hidden = false;
+
+  if (total > 0 && taken === total) {
+    widget.innerHTML = `<div class="meds-widget-all-taken">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+      All medications taken today</div>`;
+    return;
+  }
+
+  widget.innerHTML = `<h3 class="meds-widget-title">Today's Medications</h3>${rows}`;
+  widget.querySelectorAll('.med-slot:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => markMedTaken(+btn.dataset.mi, +btn.dataset.ti));
+  });
+}
+
+// ── Account banner ────────────────────────────
+function showAccountBannerIfNeeded() {
+  if (localStorage.getItem(BANNER_KEY)) return;
+  if (!getEntries().length) return;
+  const banner = document.getElementById('account-banner');
+  if (banner) banner.hidden = false;
+}
+
+// ── Caregiver notify ──────────────────────────
+function showCaregiverPrompt() {
+  const profile = getProfile();
+  if (!profile || !profile.caregiver || !profile.caregiver.name) return;
+  const overlay = document.getElementById('caregiver-notify');
+  const nameEl  = document.getElementById('caregiver-notify-name');
+  if (nameEl) nameEl.textContent = profile.caregiver.name;
+  if (overlay) overlay.hidden = false;
+}
+
+// ── Profile modal ─────────────────────────────
+function openProfile() {
+  const modal = document.getElementById('screen-profile');
+  renderProfile();
+  modal.classList.add('active');
+  modal.removeAttribute('aria-hidden');
+}
+
+function closeProfile() {
+  const modal = document.getElementById('screen-profile');
+  modal.classList.remove('active');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function renderProfile() {
+  const profile = getProfile();
+  const scroll  = document.getElementById('profile-scroll');
+
+  if (!profile) {
+    scroll.innerHTML = `
+      <div class="form-section profile-empty-state">
+        <p class="profile-empty-text">Complete your profile to personalize Vivea and enable medication reminders.</p>
+        <button class="btn-save" id="btn-profile-setup-link" style="margin-top:4px">Set up my profile</button>
+      </div>
+      ${caregiverSectionHTML(null)}`;
+    document.getElementById('btn-profile-setup-link').addEventListener('click', () => {
+      closeProfile();
+      document.getElementById('screen-onboarding').hidden = false;
+      obInitScreens();
+    });
+  } else {
+    scroll.innerHTML = myProfileHTML(profile) + medsProfileHTML(profile) + caregiverSectionHTML(profile);
+    const addMedBtn = document.getElementById('btn-profile-add-med');
+    if (addMedBtn) addMedBtn.addEventListener('click', () => {
+      closeProfile();
+      document.getElementById('screen-onboarding').hidden = false;
+      obInitScreens();
+    });
+  }
+  wireCaregiverSection();
+}
+
+function myProfileHTML(profile) {
+  const typeLabels = {
+    newly_diagnosed: 'Newly diagnosed',
+    living:          'Living with epilepsy',
+    caregiver:       'Caregiver',
+    professional:    'Healthcare professional',
+  };
+  const seiz = (profile.seizureTypes || []).join(', ') || '—';
+  return `<div class="form-section">
+    <h3 class="form-section-label">My Profile</h3>
+    <div class="profile-row">
+      <span class="profile-row-label">I am</span>
+      <span class="profile-row-value">${esc(typeLabels[profile.userType] || profile.userType || '—')}</span>
+    </div>
+    ${(profile.seizureTypes || []).length ? `
+    <div class="profile-row">
+      <span class="profile-row-label">Seizure types</span>
+      <span class="profile-row-value">${esc(seiz)}</span>
+    </div>` : ''}
+  </div>`;
+}
+
+function medsProfileHTML(profile) {
+  if (profile.takingMeds !== 'yes' || !(profile.medications || []).length) {
+    return `<div class="form-section">
+      <h3 class="form-section-label">Medications</h3>
+      <p class="profile-empty-text">No medications set up.</p>
+      <button class="ob-btn-add" id="btn-profile-add-med">+ Add medications</button>
+    </div>`;
+  }
+  const medRows = profile.medications.map(med => {
+    const name = esc(typeof med === 'object' ? (med.name || '?') : String(med));
+    const dose = (med.strength) ? esc(`${med.strength}${med.unit || 'mg'}`) : '';
+    const freq = med.timesPerDay ? (FREQ_CONFIG[med.timesPerDay] || {}).label || '' : '';
+    return `<div class="profile-med-row">
+      <div class="profile-med-name">${name}${dose ? `<span class="profile-med-dose">${dose}</span>` : ''}</div>
+      ${freq ? `<div class="profile-med-freq">${esc(freq)}</div>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="form-section"><h3 class="form-section-label">Medications</h3>${medRows}</div>`;
+}
+
+function caregiverSectionHTML(profile) {
+  const cg = profile && profile.caregiver;
+  const prefLabels = {
+    every: 'Notified after every seizure',
+    severe: 'Severe seizures only',
+    notify_me_first: 'You contact them',
+  };
+  if (cg && cg.name) {
+    return `<div class="form-section">
+      <h3 class="form-section-label">Caregiver</h3>
+      <div class="profile-cg-card">
+        <div class="profile-cg-name">${esc(cg.name)}</div>
+        <div class="profile-cg-detail">${esc(cg.phone)}${cg.email ? ` · ${esc(cg.email)}` : ''}</div>
+        <div class="profile-cg-pref">${esc(prefLabels[cg.notifyPref] || cg.notifyPref || '')}</div>
+      </div>
+      <button class="ob-btn-add" id="btn-edit-caregiver">Edit</button>
+      <div id="caregiver-form-wrap" hidden>${caregiverFormHTML(cg)}</div>
+    </div>`;
+  }
+  return `<div class="form-section">
+    <h3 class="form-section-label">Caregiver</h3>
+    <p class="profile-section-desc">Add a caregiver who can see your logs and be notified after a seizure is logged.</p>
+    <button class="ob-btn-add" id="btn-add-caregiver">+ Add caregiver</button>
+    <div id="caregiver-form-wrap" hidden>${caregiverFormHTML(null)}</div>
+  </div>`;
+}
+
+function caregiverFormHTML(cg) {
+  const v = cg || {};
+  const checked = pref => (v.notifyPref === pref || (!v.notifyPref && pref === 'every')) ? ' checked' : '';
+  return `<div class="caregiver-form">
+    <div class="form-section-inner">
+      <label class="ob-card-label" for="cg-name">Name</label>
+      <input type="text"  id="cg-name"  class="input-field" placeholder="Jane Smith"        value="${esc(v.name  || '')}">
+    </div>
+    <div class="form-section-inner">
+      <label class="ob-card-label" for="cg-phone">Phone</label>
+      <input type="tel"   id="cg-phone" class="input-field" placeholder="+1 555 000 0000"   value="${esc(v.phone || '')}">
+    </div>
+    <div class="form-section-inner">
+      <label class="ob-card-label" for="cg-email">Email <span class="optional-tag">optional</span></label>
+      <input type="email" id="cg-email" class="input-field" placeholder="jane@example.com"  value="${esc(v.email || '')}">
+    </div>
+    <div class="form-section-inner">
+      <p class="ob-card-label" style="margin-bottom:8px">Notification preference</p>
+      <div class="chip-row">
+        <input type="radio" name="cg-notify" id="cg-n-every"  value="every"           class="sr-only"${checked('every')}>
+        <label for="cg-n-every"  class="chip">After every seizure</label>
+        <input type="radio" name="cg-notify" id="cg-n-severe" value="severe"          class="sr-only"${checked('severe')}>
+        <label for="cg-n-severe" class="chip">Severe only</label>
+        <input type="radio" name="cg-notify" id="cg-n-me"     value="notify_me_first" class="sr-only"${checked('notify_me_first')}>
+        <label for="cg-n-me"     class="chip">Notify me first</label>
+      </div>
+    </div>
+    <button type="button" class="btn-save" id="btn-save-caregiver" style="margin-top:8px">Save caregiver</button>
+  </div>`;
+}
+
+function wireCaregiverSection() {
+  const addBtn   = document.getElementById('btn-add-caregiver');
+  const editBtn  = document.getElementById('btn-edit-caregiver');
+  const formWrap = document.getElementById('caregiver-form-wrap');
+  const saveBtn  = document.getElementById('btn-save-caregiver');
+
+  if (addBtn)  addBtn.addEventListener('click',  () => { formWrap.hidden = false; addBtn.hidden = true; });
+  if (editBtn) editBtn.addEventListener('click', () => { formWrap.hidden = false; });
+  if (saveBtn) saveBtn.addEventListener('click', saveCaregiverProfile);
+}
+
+function saveCaregiverProfile() {
+  const name     = (document.getElementById('cg-name')  || {}).value || '';
+  const phone    = (document.getElementById('cg-phone') || {}).value || '';
+  const email    = (document.getElementById('cg-email') || {}).value || '';
+  const prefEl   = document.querySelector('input[name="cg-notify"]:checked');
+  const notifyPref = prefEl ? prefEl.value : 'every';
+
+  if (!name.trim() || !phone.trim()) {
+    alert('Name and phone number are required.');
+    return;
+  }
+
+  const profile = getProfile() || {};
+  profile.caregiver = { name: name.trim(), phone: phone.trim(), email: email.trim(), notifyPref };
+  localStorage.setItem(OB_PROFILE_KEY, JSON.stringify(profile));
+  renderProfile();
+}
+
+// ── Welcome screen ────────────────────────────
+function obInitScreens() {
+  document.getElementById('screen-onboarding').hidden = false;
+  const obScreens = document.querySelectorAll('.ob-screen');
+  obScreens.forEach((el, i) => {
+    el.style.transform    = i === 0 ? 'translateX(0)'   : 'translateX(100%)';
+    el.style.opacity      = i === 0 ? '1'               : '0';
+    el.style.pointerEvents = i === 0 ? 'auto' : 'none';
+  });
+  obUpdateHeader();
+}
+
 // ── Onboarding event wiring ────────────────────
 (function wireOnboarding() {
   // Screen 1: enable Next when a selection is made
@@ -950,22 +1287,66 @@ function showHint(key) {
   });
 })();
 
+// ── Event wiring (global UI) ──────────────────
+
+// Profile modal
+document.getElementById('btn-profile').addEventListener('click', openProfile);
+document.getElementById('btn-profile-close').addEventListener('click', closeProfile);
+
+// Account banner dismiss
+document.getElementById('btn-banner-dismiss').addEventListener('click', () => {
+  localStorage.setItem(BANNER_KEY, '1');
+  document.getElementById('account-banner').hidden = true;
+});
+
+// Insights gate: continue without account
+document.getElementById('btn-insights-continue').addEventListener('click', () => {
+  insightsGateDismissed = true;
+  document.getElementById('insights-gate').hidden = true;
+});
+
+// Caregiver notify overlay
+document.getElementById('btn-notify-send').addEventListener('click', () => {
+  document.getElementById('caregiver-notify').hidden = true;
+});
+document.getElementById('btn-notify-skip').addEventListener('click', () => {
+  document.getElementById('caregiver-notify').hidden = true;
+});
+
+// Welcome screen
+document.getElementById('btn-start-tracking').addEventListener('click', () => {
+  localStorage.setItem(WELCOME_KEY, '1');
+  const w = document.getElementById('screen-welcome');
+  w.style.transition = 'opacity 0.3s ease';
+  w.style.opacity    = '0';
+  setTimeout(() => { w.hidden = true; }, 300);
+});
+
+document.getElementById('btn-setup-profile').addEventListener('click', () => {
+  localStorage.setItem(WELCOME_KEY, '1');
+  document.getElementById('screen-welcome').hidden = true;
+  obInitScreens();
+});
+
 // ── Boot ──────────────────────────────────────
 const greetEl = document.getElementById('greeting');
 if (greetEl) greetEl.textContent = greeting();
 renderHome();
 
-// Show onboarding or apply saved profile
-if (localStorage.getItem(OB_DONE_KEY)) {
+// Existing onboarding-complete users count as welcomed even without the new key
+const hasWelcomed = !!(localStorage.getItem(WELCOME_KEY) || localStorage.getItem(OB_DONE_KEY));
+
+if (hasWelcomed) {
+  // Already past welcome — go straight to app
+  document.getElementById('screen-welcome').hidden = true;
   document.getElementById('screen-onboarding').hidden = true;
-  applyProfile(getProfile());
+  if (localStorage.getItem(OB_DONE_KEY)) {
+    applyProfile(getProfile());
+    renderHome(); // re-render with profile (meds widget, stat label)
+  }
+  showAccountBannerIfNeeded();
 } else {
-  // Init screen 1 at translateX(0), all others off to the right
-  const obScreens = document.querySelectorAll('.ob-screen');
-  obScreens.forEach((el, i) => {
-    el.style.transform   = i === 0 ? 'translateX(0)'   : 'translateX(100%)';
-    el.style.opacity     = i === 0 ? '1'               : '0';
-    el.style.pointerEvents = i === 0 ? 'auto' : 'none';
-  });
-  obUpdateHeader();
+  // First ever launch — show welcome screen, hide onboarding
+  document.getElementById('screen-onboarding').hidden = true;
+  document.getElementById('screen-welcome').hidden = false;
 }
