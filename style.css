@@ -1161,46 +1161,99 @@ input[type="radio"]:focus-visible + .ob-option {
   padding-right: 28px;
 }
 
-/* Times per day */
-.ob-med-freq-row {
+/* Card section label */
+.ob-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-sec);
+  margin: 0;
+}
+
+/* Reminder section */
+.ob-reminder-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--purple-200);
+}
+
+.ob-reminder-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
 }
 
-.ob-med-freq-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--navy);
+/* Toggle switch */
+.ob-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 26px;
+  cursor: pointer;
   flex-shrink: 0;
 }
 
-.ob-times-wrap { display: flex; gap: 6px; }
+.ob-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
 
-.ob-times-btn {
-  width: 40px;
-  height: 40px;
+.ob-toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--purple-200);
+  border-radius: 13px;
+  transition: background 0.2s ease;
+}
+
+.ob-toggle-track::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--white);
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.ob-toggle input:checked + .ob-toggle-track { background: var(--purple-900); }
+.ob-toggle input:checked + .ob-toggle-track::after { transform: translateX(18px); }
+
+/* Time pickers */
+.ob-times-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ob-time-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-family: var(--font);
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ob-time-label {
   font-size: 14px;
-  font-weight: 600;
-  color: var(--purple-900);
-  background: var(--white);
-  border: 1.5px solid var(--purple-200);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: background 0.1s, border-color 0.1s, color 0.1s;
+  font-weight: 500;
+  color: var(--text-sec);
+  min-width: 80px;
 }
-.ob-times-btn.active {
-  background: var(--purple-900);
-  border-color: var(--purple-900);
-  color: var(--white);
+
+.ob-time-input {
+  width: 132px;
+  flex-shrink: 0;
+  padding: 10px 12px;
 }
-.ob-times-btn:active { opacity: 0.75; }
 
 .ob-btn-add {
   align-self: flex-start;

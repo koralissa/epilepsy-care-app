@@ -552,6 +552,14 @@ const MED_LIST = [
   { brand: 'Other',     generic: '' },
 ];
 
+const FREQ_CONFIG = [
+  null, // index 0 unused
+  { label: 'Once daily',        labels: ['Time'],                                    defaults: ['08:00'] },
+  { label: 'Twice daily',       labels: ['Morning', 'Evening'],                      defaults: ['08:00', '20:00'] },
+  { label: 'Three times daily', labels: ['Morning', 'Afternoon', 'Evening'],         defaults: ['08:00', '14:00', '20:00'] },
+  { label: 'Four times daily',  labels: ['Morning', 'Midday', 'Afternoon', 'Evening'], defaults: ['08:00', '12:00', '16:00', '20:00'] },
+];
+
 function buildMedCard(idx) {
   const card = document.createElement('div');
   card.className = 'ob-med-card';
@@ -566,22 +574,38 @@ function buildMedCard(idx) {
         placeholder="Enter medication name" autocomplete="off"
         autocapitalize="words" hidden>
     </div>
+
+    <p class="ob-card-label">Dosage</p>
     <div class="ob-med-row">
-      <input type="text" class="input-field ob-med-strength" id="ob-med-str-${idx}"
-        placeholder="Strength" inputmode="decimal" autocomplete="off">
+      <input type="number" class="input-field ob-med-strength" id="ob-med-str-${idx}"
+        placeholder="Amount" inputmode="decimal" min="0" autocomplete="off">
       <select class="input-field ob-med-unit" id="ob-med-unit-${idx}">
         <option value="mg">mg</option>
         <option value="mcg">mcg</option>
         <option value="g">g</option>
       </select>
     </div>
-    <div class="ob-med-freq-row">
-      <span class="ob-med-freq-label">Times per day</span>
-      <div class="ob-times-wrap">
-        ${[1,2,3,4].map(n => `<button type="button" class="ob-times-btn" data-freq="${n}">${n}×</button>`).join('')}
+
+    <p class="ob-card-label">Frequency</p>
+    <div class="chip-row ob-freq-chips" role="radiogroup" aria-label="Frequency">
+      ${FREQ_CONFIG.slice(1).map((cfg, i) => `
+        <input type="radio" name="ob-freq-${idx}" id="ob-freq-${idx}-${i+1}" value="${i+1}" class="sr-only">
+        <label for="ob-freq-${idx}-${i+1}" class="chip">${esc(cfg.label)}</label>
+      `).join('')}
+    </div>
+
+    <div class="ob-reminder-section" id="ob-rem-sec-${idx}" hidden>
+      <div class="ob-reminder-toggle-row">
+        <span class="ob-card-label" style="margin:0">Reminders</span>
+        <label class="ob-toggle" aria-label="Enable reminders">
+          <input type="checkbox" class="ob-rem-toggle" id="ob-rem-${idx}" checked>
+          <span class="ob-toggle-track"></span>
+        </label>
       </div>
+      <div class="ob-times-list" id="ob-times-${idx}"></div>
     </div>`;
 
+  // — Name search —
   const nameInput  = card.querySelector('.ob-med-name');
   const dropdown   = card.querySelector('.ob-med-dropdown');
   const otherInput = card.querySelector('.ob-med-other');
@@ -599,10 +623,7 @@ function buildMedCard(idx) {
     ).join('');
     dropdown.hidden = matches.length === 0;
     dropdown.querySelectorAll('.ob-dd-item').forEach(btn => {
-      btn.addEventListener('mousedown', e => {
-        e.preventDefault();
-        selectMed(btn.dataset.brand);
-      });
+      btn.addEventListener('mousedown', e => { e.preventDefault(); selectMed(btn.dataset.brand); });
     });
   }
 
@@ -617,11 +638,32 @@ function buildMedCard(idx) {
   nameInput.addEventListener('input', () => renderDropdown(nameInput.value));
   nameInput.addEventListener('blur',  () => setTimeout(() => { dropdown.hidden = true; }, 160));
 
-  card.querySelectorAll('.ob-times-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      card.querySelectorAll('.ob-times-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+  // — Frequency → show reminder section + render time pickers —
+  const remSection = card.querySelector('.ob-reminder-section');
+  const timesList  = card.querySelector('.ob-times-list');
+  const remToggle  = card.querySelector('.ob-rem-toggle');
+
+  function renderTimes(freq) {
+    const cfg = FREQ_CONFIG[freq];
+    if (!cfg) return;
+    timesList.innerHTML = cfg.labels.map((lbl, j) =>
+      `<div class="ob-time-row">
+        <span class="ob-time-label">${esc(lbl)}</span>
+        <input type="time" class="input-field ob-time-input" id="ob-time-${idx}-${j}" value="${cfg.defaults[j]}">
+       </div>`
+    ).join('');
+  }
+
+  card.querySelectorAll('.ob-freq-chips input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const freq = parseInt(radio.value, 10);
+      remSection.hidden = false;
+      renderTimes(freq);
     });
+  });
+
+  remToggle.addEventListener('change', () => {
+    timesList.style.display = remToggle.checked ? '' : 'none';
   });
 
   return card;
@@ -722,17 +764,20 @@ function obCollectProfile() {
     const otherInput = card.querySelector('.ob-med-other');
     const strInput   = card.querySelector('.ob-med-strength');
     const unitSel    = card.querySelector('.ob-med-unit');
-    const activeFreq = card.querySelector('.ob-times-btn.active');
+    const freqRadio  = card.querySelector('.ob-freq-chips input[type="radio"]:checked');
+    const remToggle  = card.querySelector('.ob-rem-toggle');
     const rawName    = nameInput ? nameInput.value.trim() : '';
     if (!rawName) return;
     const finalName  = rawName === 'Other'
       ? (otherInput && otherInput.value.trim() ? otherInput.value.trim() : 'Other')
       : rawName;
     medications.push({
-      name:        finalName,
-      strength:    strInput    ? strInput.value.trim() : '',
-      unit:        unitSel     ? unitSel.value         : 'mg',
-      timesPerDay: activeFreq  ? parseInt(activeFreq.dataset.freq, 10) : null,
+      name:          finalName,
+      strength:      strInput   ? strInput.value.trim()         : '',
+      unit:          unitSel    ? unitSel.value                 : 'mg',
+      timesPerDay:   freqRadio  ? parseInt(freqRadio.value, 10) : null,
+      reminders:     remToggle  ? remToggle.checked             : false,
+      reminderTimes: [...card.querySelectorAll('.ob-time-input')].map(t => t.value).filter(Boolean),
     });
   });
 
