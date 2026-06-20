@@ -55,7 +55,7 @@
           <div id="account-banner" class="account-banner" hidden>
             <div class="account-banner-content">
               <span>Data saved on this device only.</span>
-              <button class="account-banner-cta">Create account</button>
+              <button class="account-banner-cta" id="btn-banner-create-account">Create account</button>
             </div>
             <button class="account-banner-dismiss" id="btn-banner-dismiss" aria-label="Dismiss">×</button>
           </div>
@@ -108,7 +108,7 @@
             </div>
             <h2 class="insights-gate-title">AI pattern insights require an account</h2>
             <p class="insights-gate-sub">Connect your logs to unlock trend detection, trigger analysis, and shareable reports for your neurologist.</p>
-            <button class="btn-save insights-gate-cta">Create account</button>
+            <button class="btn-save insights-gate-cta" id="btn-insights-create-account">Create account</button>
             <button class="ob-btn-skip" id="btn-insights-continue">Continue without account</button>
           </div>
         </div>
@@ -653,12 +653,13 @@
           </svg>
         </div>
         <div class="welcome-copy">
-          <p class="welcome-headline">Track what matters.</p>
-          <p class="welcome-sub">Log a seizure, aura, or symptom in seconds — no account needed.</p>
+          <p class="welcome-headline">Track what matters. Thrive.</p>
+          <p class="welcome-sub">Log seizures, discover patterns, and communicate better with your care team.</p>
         </div>
         <div class="welcome-actions">
-          <button class="btn-save welcome-start" id="btn-start-tracking">Start tracking</button>
-          <button class="ob-btn-skip" id="btn-setup-profile">Set up my profile</button>
+          <button class="btn-save welcome-start" id="btn-create-account">Create account</button>
+          <button class="ob-btn-skip" id="btn-go-signin">Sign in</button>
+          <button class="welcome-no-account" id="btn-start-tracking">Continue without account</button>
         </div>
       </div>
     </div>
@@ -684,6 +685,120 @@
           <button class="ob-btn-skip" id="btn-notify-skip">Skip</button>
         </div>
       </div>
+    </div>
+
+    <!-- ── Auth: Create Account ─────────────────── -->
+    <div id="screen-auth-create" class="auth-shell" hidden>
+      <div class="auth-inner">
+        <button class="auth-back" id="btn-auth-create-back" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="auth-head">
+          <h1 class="auth-title">Create your account</h1>
+        </div>
+        <form id="create-account-form" class="auth-form" novalidate>
+          <div class="auth-field-group">
+            <label class="auth-label" for="ca-first-name">First name</label>
+            <input type="text" id="ca-first-name" class="input-field" autocomplete="given-name" autocapitalize="words" placeholder="Your first name">
+          </div>
+          <div class="auth-field-group">
+            <label class="auth-label" for="ca-email">Email</label>
+            <input type="email" id="ca-email" class="input-field" autocomplete="email" inputmode="email" placeholder="you@example.com">
+          </div>
+          <div class="auth-field-group">
+            <label class="auth-label" for="ca-password">Password</label>
+            <div class="auth-pw-wrap">
+              <input type="password" id="ca-password" class="input-field" autocomplete="new-password" placeholder="8+ characters">
+              <button type="button" class="auth-pw-toggle" id="btn-ca-pw-toggle" aria-label="Show password">
+                <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <p id="create-account-error" class="auth-error" hidden></p>
+          <button type="submit" class="btn-save auth-submit">Create account</button>
+        </form>
+        <div class="auth-divider"><span>or</span></div>
+        <button type="button" class="auth-social auth-apple" id="btn-auth-apple">
+          <svg width="16" height="18" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.3-57.8-155.5-127.4C46 790.7 0 663.3 0 541c0-188.2 123.3-287.9 244.8-287.9 65.1 0 119.2 42.8 160.1 42.8 39 0 99.1-45 167.8-45 25.5 0 108.2 2.6 177.2 72.5zM530.6 231.3c26.2-30.6 44.2-73.4 44.2-116.3 0-5.8-.5-11.7-1.5-16.2-42.3 1.5-92 28.3-122 61.4-23.2 26.2-44.5 69-44.5 112.1 0 6.4.5 12.9 1 15.5 2.5.5 6.5 1 10.5 1 37.7 0 85.2-25.1 112.3-57.5z"/></svg>
+          Continue with Apple
+        </button>
+        <button type="button" class="auth-social auth-google" id="btn-auth-google">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Continue with Google
+        </button>
+        <p class="auth-fine-print">By creating an account you agree to our <a href="#" class="auth-link">Terms of Service</a> and <a href="#" class="auth-link">Privacy Policy</a></p>
+      </div>
+    </div>
+
+    <!-- ── Auth: You're in ───────────────────────── -->
+    <div id="screen-auth-success" class="auth-shell auth-success-shell" hidden>
+      <div class="auth-success-inner">
+        <div class="auth-success-head">
+          <h1 class="auth-success-title">Hi <span id="auth-success-name">there</span>. Vivea is ready.</h1>
+          <p class="auth-success-sub">Vivea learns as you log — the more you track, the more it understands your patterns.</p>
+        </div>
+        <div class="auth-value-props">
+          <div class="auth-vp">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00B2CB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+            <span>Log a seizure, aura, or side effect in seconds</span>
+          </div>
+          <div class="auth-vp">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00B2CB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+            <span>Discover patterns in your triggers and medications</span>
+          </div>
+          <div class="auth-vp">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00B2CB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+            <span>Share reports with your neurologist</span>
+          </div>
+        </div>
+        <div class="auth-success-actions">
+          <button class="btn-save" id="btn-start-logging">Start logging</button>
+          <button class="ob-btn-skip" id="btn-setup-profile-now">Set up my profile now</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Auth: Sign In ─────────────────────────── -->
+    <div id="screen-auth-signin" class="auth-shell" hidden>
+      <div class="auth-inner">
+        <button class="auth-back" id="btn-auth-signin-back" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="auth-head">
+          <h1 class="auth-title">Welcome back</h1>
+          <p class="auth-subtitle">Sign in to your Vivea account</p>
+        </div>
+        <form id="signin-form" class="auth-form" novalidate>
+          <div class="auth-field-group">
+            <label class="auth-label" for="si-email">Email</label>
+            <input type="email" id="si-email" class="input-field" autocomplete="email" inputmode="email" placeholder="you@example.com">
+          </div>
+          <div class="auth-field-group">
+            <label class="auth-label" for="si-password">Password</label>
+            <div class="auth-pw-wrap">
+              <input type="password" id="si-password" class="input-field" autocomplete="current-password">
+              <button type="button" class="auth-pw-toggle" id="btn-si-pw-toggle" aria-label="Show password">
+                <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <p id="signin-error" class="auth-error" hidden></p>
+          <button type="submit" class="btn-save auth-submit">Sign in</button>
+        </form>
+        <button type="button" class="auth-forgot" id="btn-forgot-password">Forgot password?</button>
+        <div class="auth-switch">
+          Don't have an account? <button type="button" class="auth-link-btn" id="btn-go-create-account">Create one</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Progressive profiling bottom sheet ─────── -->
+    <div id="pp-scrim" class="pp-scrim" hidden></div>
+    <div id="screen-pp-sheet" class="pp-sheet" hidden>
+      <div class="pp-handle" aria-hidden="true"></div>
+      <p id="pp-question" class="pp-question"></p>
+      <div id="pp-choices" class="pp-choices" role="group" aria-label="Response options"></div>
+      <button type="button" id="btn-pp-skip" class="pp-skip">Skip for now</button>
     </div>
 
   </div><!-- /.app-shell -->

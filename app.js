@@ -6,10 +6,19 @@ const OB_PROFILE_KEY = 'vivea_profile';
 const WELCOME_KEY    = 'vivea_welcomed';
 const BANNER_KEY     = 'vivea_banner_dismissed';
 const MED_LOG_PFX    = 'vivea_meds_';
+const ACCOUNT_KEY    = 'vivea_account';
 
 function getProfile() {
   try { return JSON.parse(localStorage.getItem(OB_PROFILE_KEY)); } catch { return null; }
 }
+
+function getAccount() {
+  try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY)); } catch { return null; }
+}
+
+function setAccount(a) { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(a)); }
+
+let _lastLoggedEntry = null;
 
 // ── Storage ───────────────────────────────────
 function getEntries() {
@@ -84,6 +93,8 @@ function localISO() {
 function renderHome() {
   const entries = getEntries();
   const profile = getProfile();
+  const greetEl = document.getElementById('greeting');
+  if (greetEl) greetEl.textContent = greeting();
 
   // Stats
   const now = new Date();
@@ -269,6 +280,10 @@ function showSuccess() {
   setTimeout(() => {
     overlay.hidden = true;
     renderHome();
+    if (_lastLoggedEntry) {
+      checkProgressiveProfiling(_lastLoggedEntry);
+      _lastLoggedEntry = null;
+    }
   }, 1800);
 }
 
@@ -294,10 +309,11 @@ function fmtTime(iso) {
 }
 
 function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  const h    = new Date().getHours();
+  const part = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  const acct = getAccount();
+  const name = acct && acct.firstName ? `, ${acct.firstName}` : '';
+  return `Good ${part}${name}`;
 }
 
 // ── Picker ────────────────────────────────────
@@ -504,7 +520,7 @@ document.getElementById('seizure-form').addEventListener('submit', e => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const rawTime = fd.get('time');
-  addEntry({
+  _lastLoggedEntry = {
     id: String(Date.now()),
     time: rawTime ? new Date(rawTime).toISOString() : new Date().toISOString(),
     category: 'Seizure',
@@ -514,7 +530,8 @@ document.getElementById('seizure-form').addEventListener('submit', e => {
     triggers: fd.getAll('triggers'),
     deviceUsed: fd.get('device-used') || '',
     notes: String(fd.get('notes') || '').trim(),
-  });
+  };
+  addEntry(_lastLoggedEntry);
   closeLog();
   showSuccess();
   showAccountBannerIfNeeded();
@@ -548,6 +565,7 @@ document.getElementById('quick-form').addEventListener('submit', e => {
     entry.dose = String(fd.get('dose') || '').trim();
     entry.reason = fd.get('reason') || '';
   }
+  _lastLoggedEntry = entry;
   closeQuickLog();
   addEntry(entry);
   showSuccess();
@@ -823,6 +841,12 @@ function obComplete() {
   const profile = obCollectProfile();
   localStorage.setItem(OB_DONE_KEY, 'true');
   localStorage.setItem(OB_PROFILE_KEY, JSON.stringify(profile));
+  const acct = getAccount();
+  if (acct) {
+    acct.hasProfile = true;
+    acct.profileCompleteness = calcProfileCompleteness(profile);
+    setAccount(acct);
+  }
 
   const shell = document.getElementById('screen-onboarding');
   shell.style.opacity = '0';
@@ -1026,10 +1050,252 @@ function renderMedsWidget() {
 
 // ── Account banner ────────────────────────────
 function showAccountBannerIfNeeded() {
+  if (getAccount()) return;
   if (localStorage.getItem(BANNER_KEY)) return;
   if (!getEntries().length) return;
   const banner = document.getElementById('account-banner');
   if (banner) banner.hidden = false;
+}
+
+// ── Account / auth ─────────────────────────────
+function createAccount(firstName, email, password) {
+  // Replace with Supabase auth V2
+  const account = {
+    firstName: firstName.trim(),
+    email: email.trim().toLowerCase(),
+    _passwordHash: btoa(encodeURIComponent(password)),
+    createdAt: new Date().toISOString(),
+    hasProfile: false,
+    profileCompleteness: 0,
+  };
+  setAccount(account);
+  localStorage.setItem(WELCOME_KEY, '1');
+  return account;
+}
+
+function signInWithEmail(email, password) {
+  // Replace with Supabase auth V2
+  const acct = getAccount();
+  if (!acct) return false;
+  if (acct.email !== email.trim().toLowerCase()) return false;
+  return acct._passwordHash === btoa(encodeURIComponent(password));
+}
+
+function openAuthCreate() {
+  document.getElementById('screen-welcome').hidden = true;
+  document.getElementById('screen-auth-signin').hidden = true;
+  document.getElementById('screen-auth-create').hidden = false;
+}
+
+function closeAuthCreate() {
+  document.getElementById('screen-auth-create').hidden = true;
+}
+
+function openAuthSuccess(firstName) {
+  const nameEl = document.getElementById('auth-success-name');
+  if (nameEl) nameEl.textContent = firstName || 'there';
+  closeAuthCreate();
+  document.getElementById('screen-auth-signin').hidden = true;
+  document.getElementById('screen-auth-success').hidden = false;
+}
+
+function closeAuthSuccess() {
+  document.getElementById('screen-auth-success').hidden = true;
+}
+
+function openAuthSignin() {
+  document.getElementById('screen-welcome').hidden = true;
+  document.getElementById('screen-auth-create').hidden = true;
+  document.getElementById('screen-auth-signin').hidden = false;
+}
+
+function returnToWelcome() {
+  document.getElementById('screen-auth-create').hidden = true;
+  document.getElementById('screen-auth-signin').hidden = true;
+  document.getElementById('screen-welcome').hidden = false;
+}
+
+// ── Progressive profiling ──────────────────────
+let _ppShownThisSession = false;
+
+function ppGetAsked() {
+  const p = getProfile() || {};
+  return p.askedQuestions || [];
+}
+
+function ppMarkAsked(questionId) {
+  const p = getProfile() || {};
+  if (!p.askedQuestions) p.askedQuestions = [];
+  if (!p.askedQuestions.includes(questionId)) p.askedQuestions.push(questionId);
+  localStorage.setItem(OB_PROFILE_KEY, JSON.stringify(p));
+}
+
+function ppSaveAnswer(key, value) {
+  const p = getProfile() || {};
+  p[key] = value;
+  localStorage.setItem(OB_PROFILE_KEY, JSON.stringify(p));
+}
+
+function checkProgressiveProfiling(entry) {
+  if (_ppShownThisSession) return;
+  const entries = getEntries();
+  const asked   = ppGetAsked();
+  let question  = null;
+
+  // Trigger 1: first seizure with known type
+  if (!question && !asked.includes('pp-seizure-type') &&
+      entry.category === 'Seizure' && entry.type && entry.type !== 'Unknown') {
+    if (entries.filter(e => e.category === 'Seizure').length === 1) {
+      const t = entry.type;
+      question = {
+        id: 'pp-seizure-type',
+        text: `Is ${t} your most common seizure type?`,
+        choices: [
+          { label: 'Yes, most common',        action: () => ppSaveAnswer('seizureTypes', [t]) },
+          { label: 'No, I have multiple types', action: () => ppSaveAnswer('seizureTypes', ['Multiple types']) },
+          { label: 'Not sure yet',             action: () => {} },
+        ],
+      };
+    }
+  }
+
+  // Trigger 2: first medication logged
+  if (!question && !asked.includes('pp-med-daily') &&
+      entry.category === 'Medication' && entry.medication) {
+    if (entries.filter(e => e.category === 'Medication').length === 1) {
+      const m = entry.medication;
+      question = {
+        id: 'pp-med-daily',
+        text: `Is ${m} a daily medication?`,
+        choices: [
+          { label: 'Yes, I take it daily', action: () => {
+            const p = getProfile() || {};
+            const meds = p.medications || [];
+            if (!meds.some(x => x.name === m)) {
+              meds.push({ name: m, strength: '', unit: 'mg', timesPerDay: 1, reminders: false, reminderTimes: [] });
+            }
+            ppSaveAnswer('medications', meds);
+            ppSaveAnswer('takingMeds', 'yes');
+          }},
+          { label: 'No, only as needed', action: () => {} },
+          { label: 'Not sure',           action: () => {} },
+        ],
+      };
+    }
+  }
+
+  // Trigger 3: same trigger selected twice
+  if (!question && !asked.includes('pp-common-trigger') && (entry.triggers || []).length) {
+    const allTriggers = entries.flatMap(e => e.triggers || []);
+    const counts = {};
+    allTriggers.forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+    const repeated = (entry.triggers || []).find(t => (counts[t] || 0) >= 2);
+    if (repeated) {
+      question = {
+        id: 'pp-common-trigger',
+        text: `${repeated} has come up a few times. Is this a common trigger for you?`,
+        choices: [
+          { label: 'Yes, track it closely', action: () => {
+            const p = getProfile() || {};
+            const confirmed = p.confirmedTriggers || [];
+            if (!confirmed.includes(repeated)) confirmed.push(repeated);
+            ppSaveAnswer('confirmedTriggers', confirmed);
+          }},
+          { label: 'Sometimes',    action: () => {} },
+          { label: 'Not sure yet', action: () => {} },
+        ],
+      };
+    }
+  }
+
+  // Trigger 4: 3rd seizure logged
+  if (!question && !asked.includes('pp-frequency-baseline')) {
+    if (entries.filter(e => e.category === 'Seizure').length === 3) {
+      question = {
+        id: 'pp-frequency-baseline',
+        text: "You've logged 3 seizures. Is this typical for you?",
+        choices: [
+          { label: 'Higher than usual', action: () => ppSaveAnswer('frequencyBaseline', 'higher') },
+          { label: 'About typical',     action: () => ppSaveAnswer('frequencyBaseline', 'typical') },
+          { label: 'Lower than usual',  action: () => ppSaveAnswer('frequencyBaseline', 'lower') },
+        ],
+      };
+    }
+  }
+
+  // Trigger 5: 7+ unique logging days
+  if (!question && !asked.includes('pp-user-type')) {
+    const uniqueDays = new Set(entries.map(e => new Date(e.time).toDateString())).size;
+    if (uniqueDays >= 7) {
+      question = {
+        id: 'pp-user-type',
+        text: "How long have you been living with epilepsy?",
+        choices: [
+          { label: 'Under 6 months',      action: () => ppSaveAnswer('userType', 'newly_diagnosed') },
+          { label: '6 months to 2 years', action: () => ppSaveAnswer('userType', 'living') },
+          { label: 'More than 2 years',   action: () => ppSaveAnswer('userType', 'living') },
+          { label: "I'm a caregiver",     action: () => ppSaveAnswer('userType', 'caregiver') },
+        ],
+      };
+    }
+  }
+
+  // Trigger 6: first aura logged
+  if (!question && !asked.includes('pp-aura-pattern') && entry.category === 'Aura') {
+    if (entries.filter(e => e.category === 'Aura').length === 1) {
+      question = {
+        id: 'pp-aura-pattern',
+        text: "Do your auras usually come before a seizure?",
+        choices: [
+          { label: "Yes, they're a warning sign", action: () => ppSaveAnswer('auraPattern', 'warning') },
+          { label: 'Sometimes',                   action: () => ppSaveAnswer('auraPattern', 'sometimes') },
+          { label: 'Not usually',                 action: () => ppSaveAnswer('auraPattern', 'rarely') },
+          { label: 'Not sure',                    action: () => ppSaveAnswer('auraPattern', 'unknown') },
+        ],
+      };
+    }
+  }
+
+  if (question) {
+    _ppShownThisSession = true;
+    showPPSheet(question);
+  }
+}
+
+function showPPSheet(question) {
+  const scrim = document.getElementById('pp-scrim');
+  const sheet = document.getElementById('screen-pp-sheet');
+  const qEl   = document.getElementById('pp-question');
+  const cEl   = document.getElementById('pp-choices');
+
+  qEl.textContent = question.text;
+  cEl.innerHTML   = '';
+
+  question.choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className   = 'pp-choice';
+    btn.textContent = choice.label;
+    btn.addEventListener('click', () => {
+      choice.action();
+      ppMarkAsked(question.id);
+      closePPSheet();
+      renderHome();
+    });
+    cEl.appendChild(btn);
+  });
+
+  scrim.hidden = false;
+  sheet.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    sheet.classList.add('active');
+  }));
+}
+
+function closePPSheet() {
+  const sheet = document.getElementById('screen-pp-sheet');
+  const scrim = document.getElementById('pp-scrim');
+  sheet.classList.remove('active');
+  setTimeout(() => { sheet.hidden = true; scrim.hidden = true; }, 320);
 }
 
 // ── Caregiver notify ──────────────────────────
@@ -1043,6 +1309,48 @@ function showCaregiverPrompt() {
 }
 
 // ── Profile modal ─────────────────────────────
+function calcProfileCompleteness(profile) {
+  if (!profile) return 0;
+  const checks = [
+    !!profile.userType,
+    (profile.seizureTypes || []).length > 0,
+    !!profile.takingMeds,
+    (profile.triggers || []).length > 0 || !!profile.dontKnowTriggers,
+    profile.trackCycle !== null && profile.trackCycle !== undefined,
+    !!(profile.caregiver && profile.caregiver.name),
+  ];
+  return Math.round(checks.filter(Boolean).length / checks.length * 100);
+}
+
+function accountProfileHTML() {
+  const acct = getAccount();
+  if (!acct) return '';
+  return `<div class="form-section profile-account-section">
+    <h3 class="form-section-label">Account</h3>
+    <div class="profile-row">
+      <span class="profile-row-label">Name</span>
+      <span class="profile-row-value">${esc(acct.firstName)}</span>
+    </div>
+    <div class="profile-row">
+      <span class="profile-row-label">Email</span>
+      <span class="profile-row-value">${esc(acct.email)}</span>
+    </div>
+  </div>`;
+}
+
+function profileCompletionHTML(profile) {
+  const pct = calcProfileCompleteness(profile);
+  return `<div class="form-section profile-completion">
+    <div class="profile-completion-row">
+      <span>Profile complete</span>
+      <strong>${pct}%</strong>
+    </div>
+    <div class="profile-completion-bar">
+      <div class="profile-completion-fill" style="width:${pct}%"></div>
+    </div>
+  </div>`;
+}
+
 function openProfile() {
   const modal = document.getElementById('screen-profile');
   renderProfile();
@@ -1062,6 +1370,7 @@ function renderProfile() {
 
   if (!profile) {
     scroll.innerHTML = `
+      ${accountProfileHTML()}
       <div class="form-section profile-empty-state">
         <p class="profile-empty-text">Complete your profile to personalize Vivea and enable medication reminders.</p>
         <button class="btn-save" id="btn-profile-setup-link" style="margin-top:4px">Set up my profile</button>
@@ -1073,7 +1382,7 @@ function renderProfile() {
       obInitScreens();
     });
   } else {
-    scroll.innerHTML = myProfileHTML(profile) + medsProfileHTML(profile) + caregiverSectionHTML(profile);
+    scroll.innerHTML = accountProfileHTML() + profileCompletionHTML(profile) + myProfileHTML(profile) + medsProfileHTML(profile) + caregiverSectionHTML(profile);
     const addMedBtn = document.getElementById('btn-profile-add-med');
     if (addMedBtn) addMedBtn.addEventListener('click', () => {
       closeProfile();
@@ -1323,6 +1632,8 @@ document.getElementById('btn-notify-skip').addEventListener('click', () => {
 });
 
 // Welcome screen
+document.getElementById('btn-create-account').addEventListener('click', openAuthCreate);
+document.getElementById('btn-go-signin').addEventListener('click', openAuthSignin);
 document.getElementById('btn-start-tracking').addEventListener('click', () => {
   localStorage.setItem(WELCOME_KEY, '1');
   const w = document.getElementById('screen-welcome');
@@ -1331,19 +1642,107 @@ document.getElementById('btn-start-tracking').addEventListener('click', () => {
   setTimeout(() => { w.hidden = true; }, 300);
 });
 
-document.getElementById('btn-setup-profile').addEventListener('click', () => {
-  localStorage.setItem(WELCOME_KEY, '1');
-  document.getElementById('screen-welcome').hidden = true;
+// Auth: Create Account screen
+document.getElementById('btn-auth-create-back').addEventListener('click', returnToWelcome);
+document.getElementById('btn-ca-pw-toggle').addEventListener('click', () => {
+  const inp = document.getElementById('ca-password');
+  inp.type  = inp.type === 'password' ? 'text' : 'password';
+});
+document.getElementById('btn-auth-apple').addEventListener('click', () => {
+  // Replace with Apple Sign In V2
+});
+document.getElementById('btn-auth-google').addEventListener('click', () => {
+  // Replace with Google Sign In V2
+});
+
+document.getElementById('create-account-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const firstName = document.getElementById('ca-first-name').value.trim();
+  const email     = document.getElementById('ca-email').value.trim();
+  const password  = document.getElementById('ca-password').value;
+  const errEl     = document.getElementById('create-account-error');
+
+  if (!firstName) {
+    errEl.textContent = 'Please enter your first name.'; errEl.hidden = false; return;
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Please enter a valid email address.'; errEl.hidden = false; return;
+  }
+  if (password.length < 8) {
+    errEl.textContent = 'Password must be at least 8 characters.'; errEl.hidden = false; return;
+  }
+  const existing = getAccount();
+  if (existing && existing.email === email.toLowerCase()) {
+    errEl.textContent = 'An account with this email already exists.'; errEl.hidden = false; return;
+  }
+  errEl.hidden = true;
+
+  createAccount(firstName, email, password);
+  openAuthSuccess(firstName);
+  renderHome();
+});
+
+// Auth: You're in screen
+document.getElementById('btn-start-logging').addEventListener('click', () => {
+  closeAuthSuccess();
+  renderHome();
+});
+document.getElementById('btn-setup-profile-now').addEventListener('click', () => {
+  closeAuthSuccess();
+  document.getElementById('screen-onboarding').hidden = false;
   obInitScreens();
 });
+
+// Auth: Sign In screen
+document.getElementById('btn-auth-signin-back').addEventListener('click', returnToWelcome);
+document.getElementById('btn-si-pw-toggle').addEventListener('click', () => {
+  const inp = document.getElementById('si-password');
+  inp.type  = inp.type === 'password' ? 'text' : 'password';
+});
+document.getElementById('btn-go-create-account').addEventListener('click', () => {
+  document.getElementById('screen-auth-signin').hidden = true;
+  openAuthCreate();
+});
+document.getElementById('btn-forgot-password').addEventListener('click', () => {
+  // Replace with password reset V2
+  const errEl = document.getElementById('signin-error');
+  errEl.textContent = 'Password reset is coming soon.';
+  errEl.hidden = false;
+});
+
+document.getElementById('signin-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const email    = document.getElementById('si-email').value.trim();
+  const password = document.getElementById('si-password').value;
+  const errEl    = document.getElementById('signin-error');
+
+  if (!email || !password) {
+    errEl.textContent = 'Please enter your email and password.'; errEl.hidden = false; return;
+  }
+  if (signInWithEmail(email, password)) {
+    errEl.hidden = true;
+    document.getElementById('screen-auth-signin').hidden = true;
+    localStorage.setItem(WELCOME_KEY, '1');
+    renderHome();
+  } else {
+    errEl.textContent = 'Email or password is incorrect.'; errEl.hidden = false;
+  }
+});
+
+// Banner + insights gate "Create account" CTAs
+document.getElementById('btn-banner-create-account').addEventListener('click', openAuthCreate);
+document.getElementById('btn-insights-create-account').addEventListener('click', openAuthCreate);
+
+// PP sheet skip
+document.getElementById('btn-pp-skip').addEventListener('click', closePPSheet);
 
 // ── Boot ──────────────────────────────────────
 const greetEl = document.getElementById('greeting');
 if (greetEl) greetEl.textContent = greeting();
 renderHome();
 
-// Existing onboarding-complete users count as welcomed even without the new key
-const hasWelcomed = !!(localStorage.getItem(WELCOME_KEY) || localStorage.getItem(OB_DONE_KEY));
+// Existing onboarding-complete users and account holders skip the welcome screen
+const hasWelcomed = !!(localStorage.getItem(WELCOME_KEY) || localStorage.getItem(OB_DONE_KEY) || getAccount());
 
 if (hasWelcomed) {
   // Already past welcome — go straight to app
