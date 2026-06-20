@@ -219,22 +219,40 @@
               <span class="optional-tag">optional · select all that apply</span>
             </h3>
             <div class="chip-row">
-              <input type="checkbox" name="triggers" id="tr-stress" value="Stress"            class="sr-only">
+              <input type="checkbox" name="triggers" id="tr-stress" value="Stress"          class="sr-only">
               <label for="tr-stress" class="chip">Stress</label>
 
-              <input type="checkbox" name="triggers" id="tr-sleep"  value="Poor sleep"        class="sr-only">
+              <input type="checkbox" name="triggers" id="tr-sleep"  value="Poor sleep"      class="sr-only">
               <label for="tr-sleep"  class="chip">Poor sleep</label>
 
-              <input type="checkbox" name="triggers" id="tr-meds"   value="Missed medication" class="sr-only">
+              <input type="checkbox" name="triggers" id="tr-meds"   value="Missed meds"     class="sr-only">
               <label for="tr-meds"   class="chip">Missed meds</label>
 
-              <input type="checkbox" name="triggers" id="tr-heat"   value="Hot weather"       class="sr-only">
+              <input type="checkbox" name="triggers" id="tr-ill"    value="Illness/fever"   class="sr-only">
+              <label for="tr-ill"    class="chip">Illness/fever</label>
+
+              <input type="checkbox" name="triggers" id="tr-dehyd"  value="Dehydration"     class="sr-only">
+              <label for="tr-dehyd"  class="chip">Dehydration</label>
+
+              <input type="checkbox" name="triggers" id="tr-bg"     value="Low blood sugar" class="sr-only">
+              <label for="tr-bg"     class="chip">Low blood sugar</label>
+
+              <input type="checkbox" name="triggers" id="tr-alc"    value="Alcohol"         class="sr-only">
+              <label for="tr-alc"    class="chip">Alcohol</label>
+
+              <input type="checkbox" name="triggers" id="tr-flash"  value="Flashing lights" class="sr-only">
+              <label for="tr-flash"  class="chip">Flashing lights</label>
+
+              <input type="checkbox" name="triggers" id="tr-caff"   value="Caffeine"        class="sr-only">
+              <label for="tr-caff"   class="chip">Caffeine</label>
+
+              <input type="checkbox" name="triggers" id="tr-horm"   value="Hormonal/cycle"  class="sr-only">
+              <label for="tr-horm"   class="chip">Hormonal/cycle</label>
+
+              <input type="checkbox" name="triggers" id="tr-heat"   value="Hot weather"     class="sr-only">
               <label for="tr-heat"   class="chip">Hot weather</label>
 
-              <input type="checkbox" name="triggers" id="tr-cycle"  value="Menstrual cycle"   class="sr-only">
-              <label for="tr-cycle"  class="chip">Menstrual cycle</label>
-
-              <input type="checkbox" name="triggers" id="tr-other"  value="Other"             class="sr-only">
+              <input type="checkbox" name="triggers" id="tr-other"  value="Other"           class="sr-only">
               <label for="tr-other"  class="chip">Other</label>
             </div>
           </section>
@@ -346,10 +364,7 @@
             <h3 class="form-section-label">When?</h3>
             <input type="datetime-local" id="quick-time" name="time" class="input-field" autocomplete="off">
           </section>
-          <section class="form-section">
-            <h3 class="form-section-label">Notes <span class="optional-tag">optional</span></h3>
-            <textarea id="quick-notes" name="notes" class="input-field input-notes" rows="4" placeholder="What happened?" autocomplete="off"></textarea>
-          </section>
+          <div id="quick-form-body"></div>
           <div class="form-footer">
             <button type="submit" class="btn-save">Save</button>
           </div>

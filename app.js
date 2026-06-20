@@ -284,11 +284,144 @@ function closePicker() {
 // ── Quick log (Aura / Side Effect / Medication / Note) ──
 let quickCat = null;
 
+function quickFormSections(cat) {
+  if (cat === 'Aura') {
+    return `
+      <section class="form-section">
+        <h3 class="form-section-label">Symptoms <span class="optional-tag">optional · select all that apply</span></h3>
+        <div class="chip-row">
+          <input type="checkbox" name="symptoms" id="au-sym-vis"   value="Visual disturbance" class="sr-only">
+          <label for="au-sym-vis"   class="chip">Visual disturbance</label>
+          <input type="checkbox" name="symptoms" id="au-sym-smell" value="Strange smell"       class="sr-only">
+          <label for="au-sym-smell" class="chip">Strange smell</label>
+          <input type="checkbox" name="symptoms" id="au-sym-deja"  value="Déjà vu"            class="sr-only">
+          <label for="au-sym-deja"  class="chip">Déjà vu</label>
+          <input type="checkbox" name="symptoms" id="au-sym-ting"  value="Tingling"           class="sr-only">
+          <label for="au-sym-ting"  class="chip">Tingling</label>
+          <input type="checkbox" name="symptoms" id="au-sym-fear"  value="Fear"               class="sr-only">
+          <label for="au-sym-fear"  class="chip">Fear</label>
+          <input type="checkbox" name="symptoms" id="au-sym-naus"  value="Nausea"             class="sr-only">
+          <label for="au-sym-naus"  class="chip">Nausea</label>
+          <input type="checkbox" name="symptoms" id="au-sym-oth"   value="Other"              class="sr-only">
+          <label for="au-sym-oth"   class="chip">Other</label>
+        </div>
+      </section>
+      <section class="form-section">
+        <h3 class="form-section-label">Possible trigger <span class="optional-tag">optional · select all that apply</span></h3>
+        <div class="chip-row">
+          <input type="checkbox" name="triggers" id="au-tr-horm" value="Hormonal/cycle" class="sr-only">
+          <label for="au-tr-horm" class="chip">Hormonal/cycle</label>
+          <input type="checkbox" name="triggers" id="au-tr-bg"   value="Blood sugar"    class="sr-only">
+          <label for="au-tr-bg"   class="chip">Blood sugar</label>
+          <input type="checkbox" name="triggers" id="au-tr-str"  value="Stress"         class="sr-only">
+          <label for="au-tr-str"  class="chip">Stress</label>
+          <input type="checkbox" name="triggers" id="au-tr-slp"  value="Poor sleep"     class="sr-only">
+          <label for="au-tr-slp"  class="chip">Poor sleep</label>
+          <input type="checkbox" name="triggers" id="au-tr-unk"  value="Unknown"        class="sr-only">
+          <label for="au-tr-unk"  class="chip">Unknown</label>
+          <input type="checkbox" name="triggers" id="au-tr-oth"  value="Other"          class="sr-only">
+          <label for="au-tr-oth"  class="chip">Other</label>
+        </div>
+      </section>
+      <section class="form-section">
+        <h3 class="form-section-label">Did it lead to a seizure?</h3>
+        <div class="chip-row">
+          <input type="radio" name="led-to-seizure" id="au-lts-y"  value="Yes"      class="sr-only">
+          <label for="au-lts-y"  class="chip">Yes</label>
+          <input type="radio" name="led-to-seizure" id="au-lts-n"  value="No"       class="sr-only">
+          <label for="au-lts-n"  class="chip">No</label>
+          <input type="radio" name="led-to-seizure" id="au-lts-ns" value="Not sure" class="sr-only" checked>
+          <label for="au-lts-ns" class="chip">Not sure</label>
+        </div>
+      </section>
+      <section class="form-section">
+        <h3 class="form-section-label">Notes <span class="optional-tag">optional</span></h3>
+        <textarea name="notes" class="input-field input-notes" rows="3" placeholder="Any other details…" autocomplete="off"></textarea>
+      </section>`;
+  }
+
+  if (cat === 'Side effect') {
+    return `
+      <section class="form-section">
+        <h3 class="form-section-label">Symptoms <span class="optional-tag">select all that apply</span></h3>
+        <div class="chip-row">
+          <input type="checkbox" name="symptoms" id="se-sym-diz"  value="Dizziness"     class="sr-only">
+          <label for="se-sym-diz"  class="chip">Dizziness</label>
+          <input type="checkbox" name="symptoms" id="se-sym-fat"  value="Fatigue"       class="sr-only">
+          <label for="se-sym-fat"  class="chip">Fatigue</label>
+          <input type="checkbox" name="symptoms" id="se-sym-mem"  value="Memory issues" class="sr-only">
+          <label for="se-sym-mem"  class="chip">Memory issues</label>
+          <input type="checkbox" name="symptoms" id="se-sym-mood" value="Mood changes"  class="sr-only">
+          <label for="se-sym-mood" class="chip">Mood changes</label>
+          <input type="checkbox" name="symptoms" id="se-sym-naus" value="Nausea"        class="sr-only">
+          <label for="se-sym-naus" class="chip">Nausea</label>
+          <input type="checkbox" name="symptoms" id="se-sym-oth"  value="Other"         class="sr-only">
+          <label for="se-sym-oth"  class="chip">Other</label>
+        </div>
+      </section>
+      <section class="form-section">
+        <h3 class="form-section-label">Severity</h3>
+        <div class="chip-row">
+          <input type="radio" name="severity" id="se-sev-mild" value="Mild"     class="sr-only">
+          <label for="se-sev-mild" class="chip">Mild</label>
+          <input type="radio" name="severity" id="se-sev-mod"  value="Moderate" class="sr-only">
+          <label for="se-sev-mod"  class="chip">Moderate</label>
+          <input type="radio" name="severity" id="se-sev-sev"  value="Severe"   class="sr-only">
+          <label for="se-sev-sev"  class="chip">Severe</label>
+        </div>
+      </section>
+      <section class="form-section">
+        <h3 class="form-section-label">Suspected medication <span class="optional-tag">optional</span></h3>
+        <input type="text" name="medication" class="input-field" placeholder="e.g. Levetiracetam" autocomplete="off">
+      </section>
+      <section class="form-section">
+        <h3 class="form-section-label">Notes <span class="optional-tag">optional</span></h3>
+        <textarea name="notes" class="input-field input-notes" rows="3" placeholder="Any other details…" autocomplete="off"></textarea>
+      </section>`;
+  }
+
+  if (cat === 'Medication') {
+    return `
+      <section class="form-section">
+        <h3 class="form-section-label">Medication name</h3>
+        <input type="text" name="medication" class="input-field" placeholder="e.g. Levetiracetam" autocomplete="off">
+      </section>
+      <section class="form-section">
+        <h3 class="form-section-label">Dose <span class="optional-tag">optional</span></h3>
+        <input type="text" name="dose" class="input-field" placeholder="e.g. 500 mg" autocomplete="off">
+      </section>
+      <section class="form-section">
+        <h3 class="form-section-label">Reason</h3>
+        <div class="chip-row">
+          <input type="radio" name="reason" id="med-rsn-sch" value="Scheduled" class="sr-only">
+          <label for="med-rsn-sch" class="chip">Scheduled</label>
+          <input type="radio" name="reason" id="med-rsn-res" value="Rescue"    class="sr-only">
+          <label for="med-rsn-res" class="chip">Rescue</label>
+          <input type="radio" name="reason" id="med-rsn-mis" value="Missed"    class="sr-only">
+          <label for="med-rsn-mis" class="chip">Missed</label>
+          <input type="radio" name="reason" id="med-rsn-oth" value="Other"     class="sr-only">
+          <label for="med-rsn-oth" class="chip">Other</label>
+        </div>
+      </section>
+      <section class="form-section">
+        <h3 class="form-section-label">Notes <span class="optional-tag">optional</span></h3>
+        <textarea name="notes" class="input-field input-notes" rows="3" placeholder="Any other details…" autocomplete="off"></textarea>
+      </section>`;
+  }
+
+  // Note
+  return `
+    <section class="form-section">
+      <h3 class="form-section-label">Notes <span class="optional-tag">optional</span></h3>
+      <textarea name="notes" class="input-field input-notes" rows="4" placeholder="What happened?" autocomplete="off"></textarea>
+    </section>`;
+}
+
 function openQuickLog(cat) {
   quickCat = cat;
   document.getElementById('quick-log-title').textContent = cat;
   document.getElementById('quick-time').value = localISO();
-  document.getElementById('quick-notes').value = '';
+  document.getElementById('quick-form-body').innerHTML = quickFormSections(cat);
   const modal = document.getElementById('screen-quick-log');
   modal.classList.add('active');
   modal.removeAttribute('aria-hidden');
@@ -354,14 +487,28 @@ document.getElementById('quick-form').addEventListener('submit', e => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const rawTime = fd.get('time');
-  addEntry({
+  const entry = {
     id: String(Date.now()),
     time: rawTime ? new Date(rawTime).toISOString() : new Date().toISOString(),
     category: quickCat,
     type: quickCat,
     notes: String(fd.get('notes') || '').trim(),
-  });
+  };
+  if (quickCat === 'Aura') {
+    entry.symptoms = fd.getAll('symptoms');
+    entry.triggers = fd.getAll('triggers');
+    entry.ledToSeizure = fd.get('led-to-seizure') || 'Not sure';
+  } else if (quickCat === 'Side effect') {
+    entry.symptoms = fd.getAll('symptoms');
+    entry.severity = fd.get('severity') || '';
+    entry.medication = String(fd.get('medication') || '').trim();
+  } else if (quickCat === 'Medication') {
+    entry.medication = String(fd.get('medication') || '').trim();
+    entry.dose = String(fd.get('dose') || '').trim();
+    entry.reason = fd.get('reason') || '';
+  }
   closeQuickLog();
+  addEntry(entry);
   showSuccess();
 });
 
