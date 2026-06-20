@@ -165,13 +165,19 @@ function renderInsights() {
 }
 
 // ── Entry card HTML ───────────────────────────
+// Lucide "activity" icon — ECG waveform, used for all seizure entries
+const SEIZURE_ICON = `<svg class="cat-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`;
+
 function entryCardHTML(e) {
   const emoji = { Mild: '😐', Moderate: '😟', Severe: '😰' }[e.intensity] || '';
   const triggers = e.triggers || [];
   return `
-    <article class="entry-card" role="listitem">
+    <article class="entry-card cat-seizure" role="listitem">
       <div class="entry-top">
-        <span class="entry-type-badge">${esc(e.type || 'Unknown')}</span>
+        <div class="entry-heading">
+          ${SEIZURE_ICON}
+          <span class="entry-type-badge">${esc(e.type || 'Unknown')}</span>
+        </div>
         <div class="entry-meta">
           ${e.duration ? `<span class="entry-pill">${esc(e.duration)}</span>` : ''}
           ${emoji ? `<span class="entry-intensity" title="${esc(e.intensity)}">${emoji}</span>` : ''}

@@ -235,8 +235,8 @@ body {
 
 /* ── Entry card ──────────────────────────────── */
 .entry-card {
-  background: var(--white);
-  border: 1px solid var(--purple-200);
+  background: var(--cat-bg, var(--white));
+  border: 1px solid var(--cat-border, var(--purple-200));
   border-radius: var(--radius);
   padding: 16px;
   display: flex;
@@ -251,11 +251,23 @@ body {
   gap: 8px;
 }
 
+.entry-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
 .entry-type-badge {
   font-size: 15px;
   font-weight: 600;
-  color: var(--navy);
-  flex: 1;
+  color: var(--cat-active, var(--navy));
+}
+
+.cat-icon {
+  color: var(--cat-icon, var(--purple-500));
+  flex-shrink: 0;
 }
 
 .entry-meta {
@@ -268,9 +280,9 @@ body {
 .entry-pill {
   font-size: 12px;
   font-weight: 500;
-  color: var(--purple-700);
-  background: rgba(123, 75, 184, 0.08);
-  border: 1px solid rgba(123, 75, 184, 0.22);
+  color: var(--cat-icon, var(--purple-700));
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--cat-border, var(--purple-200));
   padding: 3px 10px;
   border-radius: 100px;
   white-space: nowrap;
@@ -525,9 +537,9 @@ body {
   font-family: var(--font);
   font-size: 14px;
   font-weight: 500;
-  color: var(--purple-500);
+  color: var(--purple-900);
   background: var(--white);
-  border: 1.5px solid var(--purple-500);
+  border: 1.5px solid var(--purple-900);
   border-radius: 100px;
   cursor: pointer;
   min-height: 40px;
@@ -689,6 +701,46 @@ input[type="checkbox"]:focus-visible + .chip {
   font-size: 14px;
   color: var(--text-sec);
   line-height: 1.65;
+}
+
+/* ── Category color tokens (Atlassian 4-level scale) ─ */
+/*    subtlest → subtler → subtle → bolder              */
+/*    bg       → border  → icon   → active              */
+.cat-seizure {
+  --cat-bg:     #F3F0FF;
+  --cat-border: #DDD6FF;
+  --cat-icon:   #7B4BB8;
+  --cat-active: #5B2096;
+}
+.cat-triggers {
+  --cat-bg:     #E8F8FB;
+  --cat-border: #B3E8F0;
+  --cat-icon:   #00B2CB;
+  --cat-active: #007A8C;
+}
+.cat-medication {
+  --cat-bg:     #E8F5F0;
+  --cat-border: #B3DDD0;
+  --cat-icon:   #00875A;
+  --cat-active: #006644;
+}
+.cat-side-effects {
+  --cat-bg:     #FEF0FA;
+  --cat-border: #F5C0E8;
+  --cat-icon:   #B71286;
+  --cat-active: #8A0E65;
+}
+.cat-journal {
+  --cat-bg:     #FAF7FF;
+  --cat-border: #E8E0F0;
+  --cat-icon:   #905CAD;
+  --cat-active: #6B3F8A;
+}
+.cat-appointments {
+  --cat-bg:     #FFECEB;
+  --cat-border: #FFBDAD;
+  --cat-icon:   #DE350B;
+  --cat-active: #BF2600;
 }
 
 /* ── Success overlay ─────────────────────────── */
