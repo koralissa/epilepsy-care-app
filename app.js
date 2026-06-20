@@ -164,19 +164,52 @@ function renderInsights() {
   `;
 }
 
-// ── Entry card HTML ───────────────────────────
-// Lucide "activity" icon — ECG waveform, used for all seizure entries
-const SEIZURE_ICON = `<svg class="cat-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`;
+// ── Category map ──────────────────────────────
+// Maps category name → { css class, card icon SVG }
+const CATEGORY_MAP = {
+  Seizure: {
+    cls:  'cat-seizure',
+    icon: `<svg class="cat-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  },
+  Aura: {
+    cls:  'cat-aura',
+    icon: `<svg class="cat-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  },
+  'Side effect': {
+    cls:  'cat-side-effects',
+    icon: `<svg class="cat-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>`,
+  },
+  Medication: {
+    cls:  'cat-medication',
+    icon: `<svg class="cat-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>`,
+  },
+  Note: {
+    cls:  'cat-journal',
+    icon: `<svg class="cat-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
+  },
+};
 
+const SEIZURE_SUBTYPES = new Set(['Tonic-clonic','Absence','Focal aware','Focal impaired','Myoclonic','Atonic','Unknown']);
+
+function getEntryCategory(e) {
+  if (e.category && CATEGORY_MAP[e.category]) return e.category;
+  if (SEIZURE_SUBTYPES.has(e.type)) return 'Seizure';
+  return CATEGORY_MAP[e.type] ? e.type : 'Seizure';
+}
+
+// ── Entry card HTML ───────────────────────────
 function entryCardHTML(e) {
+  const cat = getEntryCategory(e);
+  const { cls, icon } = CATEGORY_MAP[cat] || CATEGORY_MAP.Seizure;
   const emoji = { Mild: '😐', Moderate: '😟', Severe: '😰' }[e.intensity] || '';
   const triggers = e.triggers || [];
+  const displayType = cat === 'Seizure' ? esc(e.type || 'Unknown') : esc(cat);
   return `
-    <article class="entry-card cat-seizure" role="listitem">
+    <article class="entry-card ${cls}" role="listitem">
       <div class="entry-top">
         <div class="entry-heading">
-          ${SEIZURE_ICON}
-          <span class="entry-type-badge">${esc(e.type || 'Unknown')}</span>
+          ${icon}
+          <span class="entry-type-badge">${displayType}</span>
         </div>
         <div class="entry-meta">
           ${e.duration ? `<span class="entry-pill">${esc(e.duration)}</span>` : ''}
@@ -231,31 +264,104 @@ function greeting() {
   return 'Good evening';
 }
 
+// ── Picker ────────────────────────────────────
+function openPicker() {
+  const sheet = document.getElementById('screen-picker');
+  const scrim = document.getElementById('picker-scrim');
+  sheet.classList.add('active');
+  sheet.removeAttribute('aria-hidden');
+  scrim.classList.add('active');
+}
+
+function closePicker() {
+  const sheet = document.getElementById('screen-picker');
+  const scrim = document.getElementById('picker-scrim');
+  sheet.classList.remove('active');
+  sheet.setAttribute('aria-hidden', 'true');
+  scrim.classList.remove('active');
+}
+
+// ── Quick log (Aura / Side Effect / Medication / Note) ──
+let quickCat = null;
+
+function openQuickLog(cat) {
+  quickCat = cat;
+  document.getElementById('quick-log-title').textContent = cat;
+  document.getElementById('quick-time').value = localISO();
+  document.getElementById('quick-notes').value = '';
+  const modal = document.getElementById('screen-quick-log');
+  modal.classList.add('active');
+  modal.removeAttribute('aria-hidden');
+}
+
+function closeQuickLog() {
+  document.getElementById('screen-quick-log').classList.remove('active');
+  document.getElementById('screen-quick-log').setAttribute('aria-hidden', 'true');
+  quickCat = null;
+}
+
 // ── Event listeners ───────────────────────────
 document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.view));
 });
 
-document.getElementById('btn-log').addEventListener('click', openLog);
-document.getElementById('nav-log-btn').addEventListener('click', openLog);
+// Both log entry points open the picker
+document.getElementById('btn-log').addEventListener('click', openPicker);
+document.getElementById('nav-log-btn').addEventListener('click', openPicker);
+
+// Picker dismiss
+document.getElementById('btn-picker-cancel').addEventListener('click', closePicker);
+document.getElementById('picker-scrim').addEventListener('click', closePicker);
+
+// Picker item selection
+document.querySelectorAll('.picker-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cat = btn.dataset.cat;
+    closePicker();
+    if (cat === 'Seizure') {
+      openLog();
+    } else {
+      openQuickLog(cat);
+    }
+  });
+});
+
+// Seizure form
 document.getElementById('btn-cancel').addEventListener('click', closeLog);
 
 document.getElementById('seizure-form').addEventListener('submit', e => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const rawTime = fd.get('time');
-
   addEntry({
     id: String(Date.now()),
     time: rawTime ? new Date(rawTime).toISOString() : new Date().toISOString(),
+    category: 'Seizure',
     type: fd.get('type') || 'Unknown',
     intensity: fd.get('intensity') || '',
     duration: fd.get('duration') || '',
     triggers: fd.getAll('triggers'),
     notes: String(fd.get('notes') || '').trim(),
   });
-
   closeLog();
+  showSuccess();
+});
+
+// Quick log form
+document.getElementById('btn-quick-cancel').addEventListener('click', closeQuickLog);
+
+document.getElementById('quick-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const rawTime = fd.get('time');
+  addEntry({
+    id: String(Date.now()),
+    time: rawTime ? new Date(rawTime).toISOString() : new Date().toISOString(),
+    category: quickCat,
+    type: quickCat,
+    notes: String(fd.get('notes') || '').trim(),
+  });
+  closeQuickLog();
   showSuccess();
 });
 

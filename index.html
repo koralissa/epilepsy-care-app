@@ -263,6 +263,100 @@
       </div>
     </div>
 
+    <!-- ── Action picker bottom sheet ──────────── -->
+    <div id="screen-picker" class="screen-picker" aria-hidden="true">
+      <div class="modal-handle" aria-hidden="true"></div>
+      <p class="picker-heading">Log</p>
+      <div class="picker-list">
+
+        <button class="picker-item" data-cat="Seizure">
+          <span class="picker-icon-wrap" style="background:#5B2096">
+            <!-- Lucide: zap -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </span>
+          <span class="picker-label">Seizure</span>
+        </button>
+
+        <button class="picker-item" data-cat="Aura">
+          <span class="picker-icon-wrap" style="background:#7B4BB8">
+            <!-- Lucide: eye -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
+          <span class="picker-label">Aura</span>
+        </button>
+
+        <button class="picker-item" data-cat="Side effect">
+          <span class="picker-icon-wrap" style="background:#B71286">
+            <!-- Lucide: alert-circle -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4"/>
+              <path d="M12 16h.01"/>
+            </svg>
+          </span>
+          <span class="picker-label">Side Effect</span>
+        </button>
+
+        <button class="picker-item" data-cat="Medication">
+          <span class="picker-icon-wrap" style="background:#00B2CB">
+            <!-- Lucide: pill -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/>
+              <path d="m8.5 8.5 7 7"/>
+            </svg>
+          </span>
+          <span class="picker-label">Medication</span>
+        </button>
+
+        <button class="picker-item" data-cat="Note">
+          <span class="picker-icon-wrap" style="background:#905CAD">
+            <!-- Lucide: mic -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+            </svg>
+          </span>
+          <span class="picker-label">Note</span>
+        </button>
+
+      </div>
+      <div class="picker-footer">
+        <button id="btn-picker-cancel" class="btn-picker-cancel">Cancel</button>
+      </div>
+    </div>
+    <div id="picker-scrim" class="picker-scrim"></div>
+
+    <!-- ── Quick log modal (Aura / Side Effect / Medication / Note) ── -->
+    <div id="screen-quick-log" class="screen-modal" aria-hidden="true">
+      <div class="modal-handle" aria-hidden="true"></div>
+      <header class="modal-header">
+        <button id="btn-quick-cancel" class="btn-cancel">Cancel</button>
+        <h2 id="quick-log-title" class="modal-title">Log</h2>
+        <div class="modal-spacer" aria-hidden="true"></div>
+      </header>
+      <div class="form-scroll">
+        <form id="quick-form" novalidate>
+          <section class="form-section">
+            <h3 class="form-section-label">When?</h3>
+            <input type="datetime-local" id="quick-time" name="time" class="input-field" autocomplete="off">
+          </section>
+          <section class="form-section">
+            <h3 class="form-section-label">Notes <span class="optional-tag">optional</span></h3>
+            <textarea id="quick-notes" name="notes" class="input-field input-notes" rows="4" placeholder="What happened?" autocomplete="off"></textarea>
+          </section>
+          <div class="form-footer">
+            <button type="submit" class="btn-save">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- ── Success overlay ───────────────────── -->
     <div id="success-overlay" class="success-overlay" role="status" aria-live="assertive" hidden>
       <div class="success-inner">

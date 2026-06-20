@@ -75,13 +75,13 @@ body {
   flex-direction: column;
 }
 
-/* ── App header — light purple, Google Health style */
+/* ── App header — dark purple #5B2096 */
 .app-header {
   flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--purple-50);
+  background: var(--purple-900);
 }
 
 .header-inner {
@@ -101,14 +101,14 @@ body {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: var(--purple-900);
+  color: var(--white);
   line-height: 1;
 }
 
 .header-greeting {
   font-size: 12px;
   font-weight: 400;
-  color: var(--text-sec);
+  color: rgba(255, 255, 255, 0.7);
   line-height: 1;
 }
 
@@ -116,9 +116,9 @@ body {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(91, 32, 150, 0.08);
-  border: 1px solid rgba(91, 32, 150, 0.15);
-  color: var(--purple-900);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--white);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -127,14 +127,14 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.profile-btn:active { background: rgba(91, 32, 150, 0.15); }
+.profile-btn:active { background: rgba(255, 255, 255, 0.2); }
 
-/* ── EEG strip — purple at 30% on light header ── */
+/* ── EEG strip — white at 20% on dark header ── */
 .eeg-strip {
   height: 24px;
   overflow: hidden;
   padding: 4px 0 0;
-  color: rgba(144, 92, 173, 0.3);
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .eeg-wave {
@@ -377,12 +377,13 @@ body {
   justify-content: center;
   color: var(--white);
   transform: translateY(-10px);
-  box-shadow: 0 4px 16px rgba(183, 18, 134, 0.42), 0 1px 4px rgba(183, 18, 134, 0.2);
+  box-shadow: none;
+  filter: none;
 }
 
 .nav-fab:active .fab-circle {
   transform: translateY(-8px);
-  box-shadow: 0 2px 8px rgba(183, 18, 134, 0.35);
+  opacity: 0.88;
 }
 
 /* ── Log modal ───────────────────────────────── */
@@ -703,6 +704,94 @@ input[type="checkbox"]:focus-visible + .chip {
   line-height: 1.65;
 }
 
+/* ── Action picker ───────────────────────────── */
+.picker-scrim {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(23, 43, 77, 0.36);
+  z-index: 40;
+}
+.picker-scrim.active { display: block; }
+
+.screen-picker {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border-radius: 20px 20px 0 0;
+  z-index: 50;
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.screen-picker.active { transform: translateY(0); pointer-events: auto; }
+
+.picker-heading {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-sec);
+  padding: 8px 20px 4px;
+}
+
+.picker-list { display: flex; flex-direction: column; }
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  width: 100%;
+  min-height: 64px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--purple-200);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-align: left;
+}
+.picker-item:last-child { border-bottom: none; }
+.picker-item:active { background: var(--purple-50); }
+
+.picker-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.picker-label {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--navy);
+}
+
+
+.picker-footer { padding: 12px 20px 20px; }
+
+.btn-picker-cancel {
+  width: 100%;
+  padding: 14px;
+  background: none;
+  border: 1.5px solid var(--purple-200);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-sec);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-picker-cancel:active { background: var(--purple-50); }
+
 /* ── Category color tokens (Atlassian 4-level scale) ─ */
 /*    subtlest → subtler → subtle → bolder              */
 /*    bg       → border  → icon   → active              */
@@ -741,6 +830,12 @@ input[type="checkbox"]:focus-visible + .chip {
   --cat-border: #FFBDAD;
   --cat-icon:   #DE350B;
   --cat-active: #BF2600;
+}
+.cat-aura {
+  --cat-bg:     #EDE9FF;
+  --cat-border: #C5B8FF;
+  --cat-icon:   #7B4BB8;
+  --cat-active: #5B2096;
 }
 
 /* ── Success overlay ─────────────────────────── */
