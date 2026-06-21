@@ -61,6 +61,7 @@
         <div class="view-body today-body">
           <div id="followup-container"></div>
           <div id="today-briefing"></div>
+          <div id="health-snapshot"></div>
           <div id="meds-widget"></div>
           <div id="log-list" role="list" aria-label="Event log"></div>
         </div>
@@ -833,6 +834,13 @@
       <div class="ci-actions">
         <button class="ci-btn-dismiss" id="btn-ci-dismiss">Got it</button>
       </div>
+    </div>
+
+    <!-- Health connect sheet -->
+    <div id="health-connect-sheet" class="screen-modal health-connect-sheet" aria-hidden="true">
+      <div class="modal-handle" aria-hidden="true"></div>
+      <p id="hcs-message" class="hcs-msg"></p>
+      <button class="hcs-btn" id="btn-hcs-ok">Got it</button>
     </div>
 
   </div><!-- /.app-shell -->

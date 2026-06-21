@@ -12,6 +12,7 @@ const PATTERN_CACHE_KEY   = 'vivea_pattern_cache';
 const PATTERN_HISTORY_KEY = 'vivea_pattern_history';
 const FOLLOWUP_KEY_PFX    = 'vivea_followup_dismissed_';
 const TODAY_CACHE_KEY     = 'vivea_today_cache';
+const HEALTH_SNAPSHOT_KEY = 'vivea_health_snapshot';
 
 function getProfile() {
   try { return JSON.parse(localStorage.getItem(OB_PROFILE_KEY)); } catch { return null; }
@@ -133,6 +134,11 @@ const DEMO_PERSONAS = {
       { id: String(_NOW-3), time: new Date(_NOW - 19*_DAY).toISOString(), category:'Aura', type:'Aura', symptoms:['Visual disturbance','Déjà vu'], triggers:['Stress'], ledToSeizure:'No', notes:'Felt strange for about 20 seconds.' },
       { id: String(_NOW-4), time: new Date(_NOW - 28*_DAY).toISOString(), category:'Side effect', type:'Side effect', symptoms:['Fatigue','Mood changes'], medication:'Keppra', notes:'Feeling really tired and irritable since dose increase.' },
     ],
+    health: {
+      sleep: { value: 74, trend: 'up',   baseline: 68 },
+      hr:    { value: 62, trend: 'down', baseline: 65 },
+      steps: { value: 6200, trend: 'up', baseline: 5800 },
+    },
   },
   marcus: {
     account: {
@@ -158,6 +164,11 @@ const DEMO_PERSONAS = {
       { id: String(_NOW-12), time: new Date(_NOW - 26*_DAY).toISOString(), category:'Seizure', type:'Tonic-clonic', intensity:'Moderate', duration:'2–5 min', triggers:['Poor sleep'], deviceUsed:'Auto-activated', notes:'' },
       { id: String(_NOW-13), time: new Date(_NOW - 33*_DAY).toISOString(), category:'Medication', type:'Medication', medication:'Lamictal', dose:'200mg', reason:'Missed', notes:'Forgot morning dose while traveling.' },
     ],
+    health: {
+      sleep: { value: 51, trend: 'down', baseline: 68 },
+      hr:    { value: 78, trend: 'up',   baseline: 65 },
+      steps: { value: 2100, trend: 'down', baseline: 5800 },
+    },
   },
   linda: {
     account: {
@@ -202,6 +213,11 @@ const DEMO_PERSONAS = {
       { id: String(_NOW-32), time: new Date(_NOW - 22*_DAY).toISOString(), category:'Seizure', type:'Tonic-clonic', intensity:'Severe', duration:'2–5 min', triggers:['Hormonal/cycle'], notes:'Second ever TC. Ambulance called.' },
       { id: String(_NOW-33), time: new Date(_NOW - 30*_DAY).toISOString(), category:'Medication', type:'Medication', medication:'Lamictal', dose:'100mg', reason:'Scheduled', notes:'Started new medication today.' },
     ],
+    health: {
+      sleep: { value: 58, trend: 'down', baseline: 68 },
+      hr:    { value: 65, trend: 'flat', baseline: 65 },
+      steps: { value: 4800, trend: 'down', baseline: 5800 },
+    },
   },
 };
 
@@ -216,6 +232,7 @@ function loadPersona(name) {
   localStorage.setItem(OB_DONE_KEY,    'true');
   localStorage.setItem(WELCOME_KEY,    '1');
   localStorage.setItem(STORAGE_KEY,    JSON.stringify(p.entries));
+  if (p.health) localStorage.setItem(HEALTH_SNAPSHOT_KEY, JSON.stringify(p.health));
   closeMoreDrawer();
   setTimeout(() => location.reload(), 260);
 }
@@ -264,6 +281,7 @@ function renderHome() {
   if (greetEl) greetEl.textContent = greeting();
   renderFollowUpCard();
   renderTodayAgent();
+  renderHealthSnapshot();
   renderMedsWidget();
   renderLogList();
 }
@@ -529,6 +547,7 @@ No markdown. No preamble. Raw JSON only. Some entries are marked PARTIAL — wei
 
   const userMsg = [
     profileParts.length ? `Profile:\n${profileParts.join('\n')}` : '',
+    serializeHealthContext(),
     archiveBlock,
     `ACTIVE WINDOW (${windowLabel}, ${windowEntries.length} entries, newest first):\n${windowEntries.map(serializeEntry).join('\n')}`,
     historySection,
@@ -2374,6 +2393,104 @@ function obInitScreens() {
   });
 })();
 
+// ── Health Snapshot ───────────────────────────
+
+function getHealthSnapshot() {
+  try { return JSON.parse(localStorage.getItem(HEALTH_SNAPSHOT_KEY)); } catch { return null; }
+}
+
+function serializeHealthContext() {
+  const h = getHealthSnapshot();
+  if (!h) return null;
+  const cmp = (val, base) => val > base ? 'above baseline' : val < base ? 'below baseline' : 'at baseline';
+  const lines = [
+    `Sleep score last night: ${h.sleep.value}/100 (baseline: ${h.sleep.baseline}) — ${cmp(h.sleep.value, h.sleep.baseline)}`,
+    `Resting heart rate: ${h.hr.value}bpm (baseline: ${h.hr.baseline}bpm) — ${h.hr.value > h.hr.baseline ? 'elevated' : 'normal range'}`,
+    `Steps yesterday: ${h.steps.value.toLocaleString()} (baseline: ${h.steps.baseline.toLocaleString()}) — ${cmp(h.steps.value, h.steps.baseline)}`,
+  ];
+  return `HEALTH DATA (via Samsung Health):\n${lines.join('\n')}`;
+}
+
+function renderHealthSnapshot() {
+  const container = document.getElementById('health-snapshot');
+  if (!container) return;
+
+  const h = getHealthSnapshot();
+
+  const trendUp   = `<svg class="health-trend-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>`;
+  const trendDn   = `<svg class="health-trend-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>`;
+
+  const connectBanner = `
+    <div class="health-connect-banner">
+      <div class="health-connect-text">
+        <p class="health-connect-headline">Find triggers you didn't know you had</p>
+        <div class="health-connect-platforms">
+          <button class="health-platform-btn" data-platform="samsung" aria-label="Connect Samsung Health">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1428A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+            Samsung Health
+          </button>
+          <button class="health-platform-btn" data-platform="apple" aria-label="Connect Apple Health">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF2D55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            Apple Health
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  if (!h) {
+    container.innerHTML = connectBanner;
+    wireHealthPlatformBtns(container);
+    return;
+  }
+
+  const fmtSteps = n => n >= 1000
+    ? `${Math.floor(n/1000)},${String(n % 1000).padStart(3, '0')}`
+    : String(n);
+
+  const metrics = [
+    { label: 'Sleep Score',     val: String(h.sleep.value), unit: '/100', trend: h.sleep.trend },
+    { label: 'Resting HR',      val: String(h.hr.value),    unit: 'bpm',  trend: h.hr.trend   },
+    { label: 'Steps Yesterday', val: fmtSteps(h.steps.value), unit: '',   trend: h.steps.trend },
+  ];
+
+  const cards = metrics.map(m => {
+    const arrow = m.trend === 'up' ? trendUp : m.trend === 'down' ? trendDn : '';
+    return `
+      <div class="health-metric-card">
+        <p class="health-metric-label">${m.label}</p>
+        <div class="health-metric-value-row">
+          <span class="health-metric-value">${esc(m.val)}</span>
+          ${m.unit ? `<span class="health-metric-unit">${m.unit}</span>` : ''}
+          ${arrow}
+        </div>
+        <p class="health-source">Via Samsung Health</p>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="health-snapshot-inner">
+      <div class="health-metrics-row">${cards}</div>
+      ${connectBanner}
+    </div>`;
+
+  wireHealthPlatformBtns(container);
+}
+
+function wireHealthPlatformBtns(container) {
+  container.querySelectorAll('.health-platform-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const platform = btn.dataset.platform;
+      const msg = platform === 'apple'
+        ? "Apple Health integration is coming — we'll notify you when it's ready."
+        : "Samsung Health integration is coming — we'll notify you when it's ready.";
+      document.getElementById('hcs-message').textContent = msg;
+      const sheet = document.getElementById('health-connect-sheet');
+      sheet.classList.add('active');
+      sheet.removeAttribute('aria-hidden');
+    });
+  });
+}
+
 // ── Today Agent ───────────────────────────────
 
 function getTodayCache() {
@@ -2430,6 +2547,8 @@ No markdown. No explanation. Return only the raw JSON object.`;
 
   const userParts = [`Today is ${today}.`];
   if (profileParts.length) userParts.push(`USER PROFILE:\n${profileParts.join('\n')}`);
+  const hCtx = serializeHealthContext();
+  if (hCtx) userParts.push(hCtx);
   userParts.push(
     recent.length
       ? `RECENT LOG HISTORY (last 14 days, ${recent.length} entries, newest first):\n${entryLines.join('\n')}`
@@ -2605,6 +2724,7 @@ function buildAssistSystemPrompt(entries, profile) {
   return [
     'You are Vivea\'s Assist Agent — a care-aware AI that helps people with epilepsy understand their own patterns. You have access to this user\'s complete log history and profile. Answer questions based only on their actual data. Be warm, clear, and never use clinical jargon without explanation. Never make medication recommendations. If you don\'t have enough data to answer confidently, say so. Always remind the user to discuss findings with their neurologist.',
     profileSection,
+    serializeHealthContext(),
     logSection,
   ].filter(Boolean).join('\n\n');
 }
@@ -2889,6 +3009,13 @@ document.getElementById('btn-pp-skip').addEventListener('click', closePPSheet);
 document.getElementById('btn-ci-dismiss').addEventListener('click', () => {
   if (_currentContextualTrackingIns) trackInsightSurfaced(_currentContextualTrackingIns);
   closeContextualInsightCard();
+});
+
+// Health connect sheet
+document.getElementById('btn-hcs-ok').addEventListener('click', () => {
+  const sheet = document.getElementById('health-connect-sheet');
+  sheet.classList.remove('active');
+  sheet.setAttribute('aria-hidden', 'true');
 });
 
 // More drawer

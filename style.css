@@ -410,6 +410,142 @@ body {
   50%       { opacity: 1;   transform: scale(1.15); }
 }
 
+/* ── Health Snapshot ────────────────────────── */
+.health-snapshot-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.health-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.health-metric-card {
+  background: var(--white);
+  border: 1px solid var(--purple-200);
+  border-radius: var(--radius);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.health-metric-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-sec);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+}
+
+.health-metric-value-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.health-metric-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.health-metric-unit {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-sec);
+  padding-bottom: 2px;
+  flex-shrink: 0;
+}
+
+.health-trend-arrow {
+  color: var(--text-sec);
+  flex-shrink: 0;
+  margin-left: 2px;
+  align-self: center;
+}
+
+.health-source {
+  font-size: 9px;
+  color: var(--text-sec);
+  letter-spacing: 0.2px;
+  margin-top: 1px;
+}
+
+/* Connect banner */
+.health-connect-banner {
+  background: var(--purple-50);
+  border: 1px solid var(--purple-200);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.health-connect-headline {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.35;
+  margin-bottom: 10px;
+}
+
+.health-connect-platforms {
+  display: flex;
+  gap: 8px;
+}
+
+.health-platform-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--white);
+  border: 1px solid var(--purple-200);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font);
+  color: var(--navy);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease);
+}
+.health-platform-btn:active { background: var(--purple-50); }
+
+/* Health connect bottom sheet */
+.health-connect-sheet {
+  padding: 20px 24px;
+  padding-bottom: max(32px, env(safe-area-inset-bottom, 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.hcs-msg {
+  font-size: 16px;
+  color: var(--navy);
+  line-height: 1.55;
+}
+
+.hcs-btn {
+  background: var(--purple-900);
+  color: var(--white);
+  border: none;
+  border-radius: 100px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hcs-btn:active { background: var(--purple-700); }
+
 /* ── Follow-up card ──────────────────────────── */
 .followup-card {
   background: var(--purple-50);
