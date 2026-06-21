@@ -354,6 +354,62 @@ body {
   padding-top: 4px;
 }
 
+/* ── Today Agent briefing ─────────────────────── */
+.today-briefing-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.briefing-card {
+  background: var(--white);
+  border: 1px solid var(--purple-200);
+  border-left: 3px solid var(--purple-500);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.briefing-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sec);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.briefing-text {
+  font-size: 15px;
+  color: var(--navy);
+  line-height: 1.55;
+}
+
+.briefing-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--purple-200);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text-sec);
+}
+
+.briefing-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--purple-500);
+  flex-shrink: 0;
+  animation: briefing-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes briefing-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50%       { opacity: 1;   transform: scale(1.15); }
+}
+
 /* ── Follow-up card ──────────────────────────── */
 .followup-card {
   background: var(--purple-50);

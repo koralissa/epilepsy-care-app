@@ -11,6 +11,7 @@ const API_KEY_KEY       = 'vivea_api_key';
 const PATTERN_CACHE_KEY   = 'vivea_pattern_cache';
 const PATTERN_HISTORY_KEY = 'vivea_pattern_history';
 const FOLLOWUP_KEY_PFX    = 'vivea_followup_dismissed_';
+const TODAY_CACHE_KEY     = 'vivea_today_cache';
 
 function getProfile() {
   try { return JSON.parse(localStorage.getItem(OB_PROFILE_KEY)); } catch { return null; }
@@ -261,8 +262,9 @@ function renderHome() {
   const greetEl = document.getElementById('greeting');
   if (greetEl) greetEl.textContent = greeting();
   renderFollowUpCard();
-  renderLogList();
+  renderTodayAgent();
   renderMedsWidget();
+  renderLogList();
 }
 
 function renderLogList() {
@@ -1583,9 +1585,13 @@ function showHint(key) {
 }
 
 // ── Today's medications widget ────────────────
-function todayDateKey() {
+function todayDateStr() {
   const d = new Date();
-  return `${MED_LOG_PFX}${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function todayDateKey() {
+  return `${MED_LOG_PFX}${todayDateStr()}`;
 }
 
 function getMedLog() {
@@ -2229,6 +2235,182 @@ function obInitScreens() {
     document.getElementById('ob-device-types').hidden = true;
   });
 })();
+
+// ── Today Agent ───────────────────────────────
+
+function getTodayCache() {
+  try { return JSON.parse(localStorage.getItem(TODAY_CACHE_KEY)); } catch { return null; }
+}
+
+function saveTodayCache(data) {
+  localStorage.setItem(TODAY_CACHE_KEY, JSON.stringify(data));
+}
+
+function buildTodayBriefingPrompt(entries, profile) {
+  const today = new Date().toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+  const recent = entries.filter(e => new Date(e.time).getTime() >= fourteenDaysAgo);
+
+  const profileParts = [];
+  if (profile) {
+    if (profile.userType) profileParts.push(`User type: ${profile.userType.replace('_', ' ')}`);
+    if ((profile.seizureTypes || []).length) profileParts.push(`Seizure types: ${profile.seizureTypes.join(', ')}`);
+    if (profile.takingMeds === 'yes' && (profile.medications || []).length) {
+      const medStr = profile.medications.map(m =>
+        typeof m === 'object'
+          ? `${m.name}${m.strength ? ` ${m.strength}${m.unit || 'mg'}` : ''}${m.timesPerDay ? ` (${(FREQ_CONFIG[m.timesPerDay] || {}).label || `${m.timesPerDay}x/day`})` : ''}`
+          : String(m)
+      ).join('; ');
+      profileParts.push(`Medications: ${medStr}`);
+    }
+    if ((profile.triggers || []).length) profileParts.push(`Known triggers: ${profile.triggers.join(', ')}`);
+  }
+
+  const entryLines = recent.slice().reverse().map(e => {
+    const d = new Date(e.time);
+    const datePart = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const timePart = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const parts = [`${datePart} ${timePart}`, `${e.category}${e.type && e.type !== e.category ? ` (${e.type})` : ''}`];
+    if (e.intensity)                  parts.push(e.intensity);
+    if (e.duration)                   parts.push(e.duration);
+    if ((e.triggers || []).length)    parts.push(`triggers: ${e.triggers.join(', ')}`);
+    if ((e.symptoms || []).length)    parts.push(`symptoms: ${e.symptoms.join(', ')}`);
+    if (e.medication)                 parts.push(`med: ${e.medication}`);
+    if (e.notes)                      parts.push(`notes: "${e.notes}"`);
+    if (e.completeness === 'partial') parts.push('PARTIAL');
+    return parts.join(' | ');
+  });
+
+  const system = `You are Vivea's Today Agent — a care-aware AI assistant for people with epilepsy. Generate a concise daily briefing based on the user's log history and profile.
+
+Return ONLY a valid JSON object with exactly these fields:
+- "status": string — one warm, plain-language sentence about how things look today based on recent logs. Not clinical. Not alarmist.
+- "focus": string or null — one specific actionable thing to pay attention to today based on patterns. Null if nothing meaningful to surface.
+- "momentum": string or null — one evidence-based observation that references specific numbers if behavior change correlates with improved outcomes. Example: "You've logged sleep quality for 12 days. Seizure frequency dropped by half in that period." Null if insufficient data.
+
+No markdown. No explanation. Return only the raw JSON object.`;
+
+  const userParts = [`Today is ${today}.`];
+  if (profileParts.length) userParts.push(`USER PROFILE:\n${profileParts.join('\n')}`);
+  userParts.push(
+    recent.length
+      ? `RECENT LOG HISTORY (last 14 days, ${recent.length} entries, newest first):\n${entryLines.join('\n')}`
+      : 'RECENT LOG HISTORY: No entries in the last 14 days.'
+  );
+  userParts.push('Generate today\'s briefing.');
+
+  return { system, user: userParts.join('\n\n') };
+}
+
+function renderTodayBriefingCards(container, briefing) {
+  const sections = [
+    { key: 'status',   label: 'Today'    },
+    { key: 'focus',    label: 'Focus'    },
+    { key: 'momentum', label: 'Momentum' },
+  ];
+  const cards = sections
+    .filter(s => briefing[s.key])
+    .map(s => `
+      <div class="briefing-card">
+        <p class="briefing-label">${s.label}</p>
+        <p class="briefing-text">${esc(briefing[s.key])}</p>
+      </div>`)
+    .join('');
+  container.innerHTML = `<div class="today-briefing-cards">${cards || ''}</div>`;
+}
+
+function renderTodayFallback(container, entries) {
+  const localDateStr = d => {
+    const x = new Date(d);
+    return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  };
+  const today = localDateStr(Date.now());
+
+  const daySet = new Set(entries.map(e => localDateStr(e.time)));
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    if (daySet.has(localDateStr(d))) streak++;
+    else break;
+  }
+
+  const lastSeizure = entries.find(e => e.category === 'Seizure');
+  let statusLine = 'No seizures logged yet.';
+  if (lastSeizure) {
+    const daysAgo = Math.floor((Date.now() - new Date(lastSeizure.time).getTime()) / 86400000);
+    statusLine = daysAgo === 0 ? 'Last seizure: today.' : `Last seizure: ${daysAgo} day${daysAgo === 1 ? '' : 's'} ago.`;
+  }
+  if (streak > 1) statusLine += ` You've been logging for ${streak} days in a row.`;
+
+  container.innerHTML = `
+    <div class="today-briefing-cards">
+      <div class="briefing-card">
+        <p class="briefing-label">Today</p>
+        <p class="briefing-text">${statusLine}</p>
+      </div>
+    </div>`;
+}
+
+async function renderTodayAgent() {
+  const container = document.getElementById('today-briefing');
+  if (!container) return;
+
+  const entries  = getEntries();
+  const apiKey   = localStorage.getItem(API_KEY_KEY);
+
+  if (!apiKey) {
+    renderTodayFallback(container, entries);
+    return;
+  }
+
+  const cache = getTodayCache();
+  const today = todayDateStr();
+  if (cache && cache.date === today && cache.entryCount === entries.length && cache.briefing) {
+    renderTodayBriefingCards(container, cache.briefing);
+    return;
+  }
+
+  // Stale-while-revalidate: keep existing cards visible if present; else show loader
+  if (!container.querySelector('.briefing-card')) {
+    container.innerHTML = `
+      <div class="briefing-loading">
+        <div class="briefing-pulse"></div>
+        <span>Today Agent is preparing your briefing…</span>
+      </div>`;
+  }
+
+  try {
+    const { system, user } = buildTodayBriefingPrompt(entries, getProfile());
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 800,
+        system,
+        messages: [{ role: 'user', content: user }],
+      }),
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data    = await res.json();
+    const text    = (data.content[0]?.text || '').trim();
+    const briefing = JSON.parse(text);
+    if (!container.isConnected) return;
+    saveTodayCache({ date: today, entryCount: entries.length, briefing });
+    renderTodayBriefingCards(container, briefing);
+  } catch {
+    if (!container.isConnected) return;
+    if (!container.querySelector('.briefing-card')) {
+      renderTodayFallback(container, entries);
+    }
+  }
+}
 
 // ── Assist Agent ──────────────────────────────
 
