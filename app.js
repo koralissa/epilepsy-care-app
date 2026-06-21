@@ -451,8 +451,11 @@ function renderInsightCards(container, insights) {
         </div>
       </div>
       <p class="pattern-headline">${esc(ins.headline || '')}</p>
-      <p class="pattern-detail">${esc(ins.detail || '')}</p>
-      <span class="pattern-confidence pattern-conf-${conf}">${esc(confLabel[conf])}</span>
+      <p class="pattern-detail" hidden>${esc(ins.detail || '')}</p>
+      <div class="pattern-card-footer">
+        <span class="pattern-confidence pattern-conf-${conf}">${esc(confLabel[conf])}</span>
+        <button class="pattern-toggle" aria-expanded="false">Show more</button>
+      </div>
     </article>`;
   }).join('');
 
@@ -479,6 +482,16 @@ function renderInsightCards(container, insights) {
       trackInsightDismissed(btn.dataset.fp);
       btn.classList.add('active');
       btn.closest('.pattern-thumbs').querySelector('.pattern-thumb-up').classList.remove('active');
+    });
+  });
+
+  container.querySelectorAll('.pattern-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const detail = btn.closest('.pattern-card').querySelector('.pattern-detail');
+      const expanded = !detail.hidden;
+      detail.hidden = expanded;
+      btn.textContent = expanded ? 'Show more' : 'Show less';
+      btn.setAttribute('aria-expanded', String(!expanded));
     });
   });
 }
@@ -611,12 +624,6 @@ function renderInsights() {
   });
   const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
 
-  const triggerCounts = {};
-  entries.forEach(e => (e.triggers || []).forEach(t => {
-    triggerCounts[t] = (triggerCounts[t] || 0) + 1;
-  }));
-  const topTrigger = Object.entries(triggerCounts).sort((a, b) => b[1] - a[1])[0];
-
   body.innerHTML = `
     <div class="insights-grid">
       <div class="insight-card">
@@ -634,15 +641,6 @@ function renderInsights() {
     </div>
 
     <div id="pattern-section"></div>
-
-    ${topTrigger ? `
-    <div>
-      <h3 class="section-label">Most common trigger</h3>
-      <div class="top-trigger-card">
-        <span class="top-trigger-name">${esc(topTrigger[0])}</span>
-        <span class="top-trigger-count">${topTrigger[1]} ${topTrigger[1] === 1 ? 'time' : 'times'}</span>
-      </div>
-    </div>` : ''}
   `;
 
   renderPatternSection(entries, document.getElementById('pattern-section'));
