@@ -391,6 +391,16 @@
           <span class="picker-label">Note</span>
         </button>
 
+        <button class="picker-item" data-cat="VNS Activation" hidden>
+          <span class="picker-icon-wrap" style="background:#1E7BC4">
+            <!-- Lucide: activity -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </span>
+          <span class="picker-label">VNS Activation</span>
+        </button>
+
       </div>
       <div class="picker-footer">
         <button id="btn-picker-cancel" class="btn-picker-cancel">Cancel</button>
@@ -816,11 +826,35 @@
         </button>
         <div class="more-persona-section">
           <p class="more-section-label more-section-label-sm">Load persona</p>
-          <div class="persona-chips">
-            <button class="persona-chip" data-persona="sarah">Sarah</button>
-            <button class="persona-chip" data-persona="marcus">Marcus</button>
-            <button class="persona-chip" data-persona="linda">Linda</button>
-            <button class="persona-chip" data-persona="maya">Maya</button>
+          <div class="persona-list">
+            <button class="persona-row" data-persona="sarah">
+              <div class="persona-row-info">
+                <span class="persona-row-name">Sarah</span>
+                <span class="persona-row-type">Newly Diagnosed</span>
+              </div>
+              <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="persona-row" data-persona="marcus">
+              <div class="persona-row-info">
+                <span class="persona-row-name">Marcus</span>
+                <span class="persona-row-type">Drug Resistant</span>
+              </div>
+              <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="persona-row" data-persona="maya">
+              <div class="persona-row-info">
+                <span class="persona-row-name">Maya</span>
+                <span class="persona-row-type">Well Maintained</span>
+              </div>
+              <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="persona-row" data-persona="james">
+              <div class="persona-row-info">
+                <span class="persona-row-name">James</span>
+                <span class="persona-row-type">VNS User</span>
+              </div>
+              <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
           </div>
         </div>
       </div>

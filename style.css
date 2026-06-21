@@ -1165,6 +1165,12 @@ input[type="checkbox"]:focus-visible + .chip {
   --cat-icon:   #7B4BB8;
   --cat-active: #5B2096;
 }
+.cat-vns {
+  --cat-bg:     #EBF4FB;
+  --cat-border: #B3D6EE;
+  --cat-icon:   #1E7BC4;
+  --cat-active: #155C96;
+}
 
 /* ── Success overlay ─────────────────────────── */
 .success-overlay {
@@ -2797,33 +2803,57 @@ input[type="radio"]:checked + .ob-device-opt .ob-device-desc { display: block; }
 .more-row:active { background: var(--purple-50); }
 .more-row svg { color: var(--text-sec); flex-shrink: 0; }
 
-/* ── Persona chips ────────────────────────────── */
+/* ── Persona list ─────────────────────────────── */
 .more-persona-section { padding: 0; }
 
-.persona-chips {
+.persona-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 4px 20px 8px;
+  flex-direction: column;
 }
 
-.persona-chip {
-  padding: 8px 22px;
-  border: 1.5px solid var(--purple-900);
-  border-radius: 100px;
+.persona-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 20px;
+  width: 100%;
   background: none;
-  color: var(--purple-900);
-  font-family: var(--font);
-  font-size: 14px;
-  font-weight: 500;
+  border: none;
+  border-bottom: 1px solid var(--purple-100, #F0EAF7);
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  text-align: left;
+  font-family: var(--font);
   -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
 }
-.persona-chip:active {
-  background: var(--purple-900);
-  color: var(--white);
+.persona-row:active { background: var(--purple-50); }
+
+.persona-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
+
+.persona-row-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  line-height: 1.3;
+}
+
+.persona-row-type {
+  font-size: 12px;
+  color: var(--text-sec);
+  line-height: 1.3;
+}
+
+.persona-row-check {
+  color: var(--purple-900);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.persona-row--active .persona-row-check { opacity: 1; }
 
 /* ── Pattern Agent (AI Insights) ─────────────── */
 .pattern-section {
