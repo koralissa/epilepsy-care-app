@@ -45,6 +45,8 @@ function switchTab(tabName) {
   document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === tabName);
   });
+  const greetEl = document.getElementById('greeting');
+  if (greetEl) greetEl.textContent = greeting();
   if (tabName === 'insights') {
     const gate = document.getElementById('insights-gate');
     if (gate) gate.hidden = !!localStorage.getItem('vivea_account') || insightsGateDismissed;
