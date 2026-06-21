@@ -26,6 +26,7 @@ function setAccount(a) { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(a)); }
 let _lastLoggedEntry = null;
 let _currentContextualTrackingIns = null;
 let _editingEntryId = null;
+let _insightsRange = 30;
 
 // ── Storage ───────────────────────────────────
 function getEntries() {
@@ -333,6 +334,93 @@ function renderFollowUpCard() {
   });
 }
 
+// ── Insights helpers ──────────────────────────
+
+function filterByRange(entries, days) {
+  if (!days) return entries;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  return entries.filter(e => new Date(e.time).getTime() >= cutoff);
+}
+
+function compressOldEntries(entries) {
+  const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  const recent = entries.filter(e => new Date(e.time).getTime() >= cutoff);
+  const old    = entries.filter(e => new Date(e.time).getTime() <  cutoff);
+  if (!old.length) return { recent, summaries: [] };
+
+  const byMonth = {};
+  old.forEach(e => {
+    const d = new Date(e.time);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push(e);
+  });
+
+  const summaries = Object.entries(byMonth)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([key, mes]) => {
+      const [y,m] = key.split('-');
+      const monthName = new Date(Number(y), Number(m)-1, 1).toLocaleDateString([], { month: 'long', year: 'numeric' });
+      const sz = mes.filter(e => e.category === 'Seizure');
+      const tc = {};
+      sz.forEach(e => (e.triggers||[]).forEach(t => { tc[t]=(tc[t]||0)+1; }));
+      const topT = Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([t])=>t);
+      const durs = [...new Set(sz.filter(e=>e.duration).map(e=>e.duration))];
+      const parts = [`Month: ${monthName}`, `Seizures: ${sz.length}`, `Other events: ${mes.length - sz.length}`];
+      if (topT.length) parts.push(`Top triggers: ${topT.join(', ')}`);
+      if (durs.length) parts.push(`Avg duration: ${durs.join('/')}`);
+      return parts.join(', ');
+    });
+
+  return { recent, summaries };
+}
+
+function computeInsightsMetrics(entries, windowDays) {
+  const seizures = entries.filter(e => e.category === 'Seizure');
+  const localKey = d => { const x=new Date(d); return `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`; };
+  const szDays = new Set(seizures.map(e => localKey(e.time)));
+
+  let freeDays = 0;
+  if (windowDays) {
+    for (let i = 0; i < windowDays; i++) {
+      const d = new Date(); d.setDate(d.getDate()-i);
+      if (!szDays.has(localKey(d))) freeDays++;
+    }
+  } else if (entries.length > 0) {
+    const oldest = new Date(entries[entries.length-1].time);
+    const total  = Math.ceil((Date.now()-oldest.getTime())/86400000)+1;
+    freeDays = total - szDays.size;
+  }
+
+  const tc = {};
+  seizures.forEach(e => (e.triggers||[]).forEach(t => { if(t) tc[t]=(tc[t]||0)+1; }));
+  const topTrig = Object.entries(tc).sort((a,b)=>b[1]-a[1])[0];
+
+  let avgBetween = null;
+  if (seizures.length >= 2) {
+    const times = seizures.map(e=>new Date(e.time).getTime()).sort((a,b)=>a-b);
+    const gaps  = times.slice(1).map((t,i)=>(t-times[i])/86400000);
+    avgBetween  = Math.round(gaps.reduce((s,g)=>s+g,0)/gaps.length);
+  }
+
+  return { totalSeizures: seizures.length, seizureFreeDays: freeDays, topTrigger: topTrig?.[0]||null, avgBetween };
+}
+
+function renderMetricsGrid(metrics) {
+  const { totalSeizures, seizureFreeDays, topTrigger, avgBetween } = metrics;
+  const cards = [
+    { val: String(totalSeizures),                           label: 'Total seizures',       text: false },
+    { val: String(seizureFreeDays),                         label: 'Seizure-free days',    text: false },
+    { val: topTrigger || '—',                               label: 'Top trigger',          text: !!topTrigger },
+    { val: avgBetween !== null ? `${avgBetween}d` : '—',   label: 'Avg. between',         text: false },
+  ];
+  return `<div class="metrics-grid">${cards.map(c =>
+    `<div class="metric-card">
+      <span class="metric-val${c.text?' metric-val-text':''}">${esc(c.val)}</span>
+      <span class="metric-label">${c.label}</span>
+    </div>`).join('')}</div>`;
+}
+
 // ── Pattern Agent ─────────────────────────────
 
 function getPatternCache() {
@@ -380,7 +468,7 @@ function trackInsightConfirmed(fp) {
   savePatternHistory(h);
 }
 
-function buildPatternPrompt(entries, profile, patternHistory) {
+function buildPatternPrompt(windowEntries, archivedSummaries, profile, patternHistory, windowDays) {
   const profileParts = [];
   if (profile) {
     if (profile.userType) profileParts.push(`User type: ${profile.userType.replace('_', ' ')}`);
@@ -397,7 +485,7 @@ function buildPatternPrompt(entries, profile, patternHistory) {
     if (profile.hasDevice === 'yes' && profile.deviceType) profileParts.push(`Device: ${profile.deviceType}`);
   }
 
-  const entryLines = entries.map(e => {
+  const serializeEntry = e => {
     const d = new Date(e.time);
     const datePart = d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
     const timePart = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -414,7 +502,7 @@ function buildPatternPrompt(entries, profile, patternHistory) {
     if (e.notes) parts.push(`notes: "${e.notes}"`);
     if (e.completeness === 'partial') parts.push('PARTIAL');
     return parts.join(' | ');
-  });
+  };
 
   const historyParts = Object.values(patternHistory || {});
   let historySection = '';
@@ -422,22 +510,35 @@ function buildPatternPrompt(entries, profile, patternHistory) {
     const lines = historyParts.map(r =>
       `- "${r.fingerprint.replace(/^[^:]+:/, '')}": surfaced ${r.times_surfaced}×, confirmed ${r.times_confirmed}×, dismissed ${r.times_dismissed}×`
     );
-    historySection = `Previously surfaced patterns (use to refine confidence and avoid repetition):\n${lines.join('\n')}`;
+    historySection = `Previously surfaced patterns (refine confidence, avoid repetition):\n${lines.join('\n')}`;
   }
 
-  const system = `You are a neurological pattern analyst helping people with epilepsy understand their health data. Analyze the log entries and profile below. Return ONLY a JSON array of exactly 3 insight objects. No markdown, no code blocks, no preamble — just the raw JSON array starting with [ and ending with ]. Each object must have exactly these fields: type (one of: "pattern", "trend", "gap"), headline (one concise sentence), detail (2-3 sentences of explanation in plain language appropriate for a patient), confidence ("high", "medium", or "low"). Some entries are marked PARTIAL — the user was unable to complete them at the time. Weight insights from partial entries with lower confidence.`;
+  const windowLabel = windowDays ? `last ${windowDays} days` : 'all time';
+
+  const system = `You are a neurological pattern analyst helping people with epilepsy understand their health data. Analyze the log entries and profile below.
+
+Return ONLY a valid JSON object with exactly two fields:
+1. "insights": an array of exactly 3 objects. Each must have: type ("pattern"|"trend"|"gap"), headline (one concise sentence), detail (2-3 plain-language sentences for a patient), confidence ("high"|"medium"|"low"), evidence_count (integer — entries directly supporting this insight), total_referenced (integer — total entries you analyzed).
+2. "reinforcement": string or null — one sentence describing a specific behavior change correlated with improved outcomes, citing exact numbers. Null if no clear correlation.
+
+No markdown. No preamble. Raw JSON only. Some entries are marked PARTIAL — weight them with lower confidence.`;
+
+  const archiveBlock = archivedSummaries.length
+    ? `HISTORICAL SUMMARY (compressed, older than 90 days):\n${archivedSummaries.join('\n')}`
+    : '';
 
   const userMsg = [
     profileParts.length ? `Profile:\n${profileParts.join('\n')}` : '',
-    `Log entries (${entries.length} total, newest first):\n${entryLines.join('\n')}`,
+    archiveBlock,
+    `ACTIVE WINDOW (${windowLabel}, ${windowEntries.length} entries, newest first):\n${windowEntries.map(serializeEntry).join('\n')}`,
     historySection,
   ].filter(Boolean).join('\n\n');
 
   return { system, user: userMsg };
 }
 
-async function callPatternAgent(entries, apiKey) {
-  const { system, user } = buildPatternPrompt(entries, getProfile(), getPatternHistory());
+async function callPatternAgent(windowEntries, archivedSummaries, windowDays, apiKey) {
+  const { system, user } = buildPatternPrompt(windowEntries, archivedSummaries, getProfile(), getPatternHistory(), windowDays);
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -459,19 +560,27 @@ async function callPatternAgent(entries, apiKey) {
     throw new Error(body.error?.message || `API error ${res.status}`);
   }
 
-  const data = await res.json();
-  const raw  = (data.content[0]?.text || '').trim();
+  const data    = await res.json();
+  const raw     = (data.content[0]?.text || '').trim();
   const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-  const insights = JSON.parse(cleaned);
+  const parsed  = JSON.parse(cleaned);
+
+  // Accept both new { insights, reinforcement } shape and legacy bare array
+  const insights      = Array.isArray(parsed) ? parsed : (parsed.insights || []);
+  const reinforcement = Array.isArray(parsed) ? null   : (parsed.reinforcement || null);
   if (!Array.isArray(insights)) throw new Error('Unexpected response format');
-  return insights;
+  return { insights, reinforcement };
 }
 
 
-function renderInsightCards(container, insights) {
-  const confLabel = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence' };
+function renderInsightCards(container, insights, windowEntries) {
+  const confLabel  = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence' };
   const thumbSvgUp = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
   const thumbSvgDn = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
+  const chevronDn  = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+
+  const rangeLabel   = _insightsRange ? `past ${_insightsRange} days` : 'all time';
+  const winSeizures  = (windowEntries || []).filter(e => e.category === 'Seizure' || e.category === 'Aura');
 
   const fingerprints = insights.slice(0, 3).map(ins => trackInsightSurfaced(ins));
   const historyAfter = getPatternHistory();
@@ -485,6 +594,21 @@ function renderInsightCards(container, insights) {
     const badge = isValidated
       ? `<span class="pattern-badge pattern-badge-validated">Validated finding</span>`
       : `<span class="pattern-badge pattern-badge-emerging">Emerging pattern</span>`;
+
+    const evCount  = typeof ins.evidence_count   === 'number' ? ins.evidence_count   : null;
+    const totRef   = typeof ins.total_referenced === 'number' ? ins.total_referenced : null;
+    const citText  = (evCount !== null && totRef !== null)
+      ? `Based on ${evCount} of your last ${totRef} entries — ${rangeLabel}`
+      : `Based on your recent entries — ${rangeLabel}`;
+
+    const drawerRows = winSeizures.slice(0, 6).map(e => {
+      const d = new Date(e.time);
+      const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const typeStr = e.type && e.type !== e.category ? e.type : e.category;
+      const tpills  = (e.triggers||[]).slice(0,2).map(t => `<span class="ct-pill">${esc(t)}</span>`).join('');
+      return `<div class="citation-entry"><span class="ce-date">${dateStr}</span><span class="ce-type">${esc(typeStr)}</span>${tpills}</div>`;
+    }).join('');
+
     return `<article class="pattern-card pattern-card-${type}">
       <div class="pattern-card-top">
         ${badge}
@@ -499,6 +623,10 @@ function renderInsightCards(container, insights) {
         <span class="pattern-confidence pattern-conf-${conf}">${esc(confLabel[conf])}</span>
         <button class="pattern-toggle" aria-expanded="false">Show more</button>
       </div>
+      <button class="pattern-citation" aria-expanded="false">
+        <span class="citation-text">${esc(citText)}</span>${chevronDn}
+      </button>
+      <div class="citation-drawer" hidden>${drawerRows || '<div class="citation-entry ce-empty">No seizure entries in this range</div>'}</div>
     </article>`;
   }).join('');
 
@@ -530,25 +658,28 @@ function renderInsightCards(container, insights) {
 
   container.querySelectorAll('.pattern-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
-      const detail = btn.closest('.pattern-card').querySelector('.pattern-detail');
+      const detail   = btn.closest('.pattern-card').querySelector('.pattern-detail');
       const expanded = !detail.hidden;
-      detail.hidden = expanded;
+      detail.hidden  = expanded;
       btn.textContent = expanded ? 'Show more' : 'Show less';
       btn.setAttribute('aria-expanded', String(!expanded));
     });
   });
+
+  container.querySelectorAll('.pattern-citation').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const drawer   = btn.nextElementSibling;
+      const expanded = !drawer.hidden;
+      drawer.hidden  = expanded;
+      btn.setAttribute('aria-expanded', String(!expanded));
+      btn.classList.toggle('citation-open', !expanded);
+    });
+  });
 }
 
-async function renderPatternSection(entries, container) {
-  if (entries.length < 3) {
-    container.innerHTML = `<div class="pattern-section">
-      <h3 class="section-label">AI Pattern Analysis</h3>
-      <p class="pattern-min-entries">Log at least 3 events to see pattern analysis.</p>
-    </div>`;
-    return;
-  }
-
+async function renderPatternSection(windowEntries, archivedSummaries, totalEntryCount, container) {
   const apiKey = localStorage.getItem(API_KEY_KEY);
+
   if (!apiKey) {
     container.innerHTML = `<div class="pattern-section">
       <h3 class="section-label">AI Pattern Analysis</h3>
@@ -567,14 +698,26 @@ async function renderPatternSection(entries, container) {
       if (!val) return;
       localStorage.setItem(API_KEY_KEY, val);
       localStorage.removeItem(PATTERN_CACHE_KEY);
-      renderPatternSection(entries, container);
+      renderPatternSection(windowEntries, archivedSummaries, totalEntryCount, container);
     });
     return;
   }
 
+  if (windowEntries.length < 3) {
+    container.innerHTML = `<div class="pattern-section">
+      <h3 class="section-label">AI Pattern Analysis</h3>
+      <p class="pattern-min-entries">Log at least 3 events to see pattern analysis.</p>
+    </div>`;
+    return;
+  }
+
   const cache = getPatternCache();
-  if (cache && cache.entryCount === entries.length && Array.isArray(cache.insights)) {
-    renderInsightCards(container, cache.insights);
+  if (cache && cache.entryCount === totalEntryCount && cache.range === _insightsRange && Array.isArray(cache.insights)) {
+    const rSlot = document.getElementById('reinforcement-slot');
+    if (rSlot && cache.reinforcement) {
+      rSlot.innerHTML = `<div class="reinforcement-card"><p class="reinforcement-text">${esc(cache.reinforcement)}</p></div>`;
+    }
+    renderInsightCards(container, cache.insights, windowEntries);
     return;
   }
 
@@ -588,10 +731,14 @@ async function renderPatternSection(entries, container) {
   </div>`;
 
   try {
-    const insights = await callPatternAgent(entries, apiKey);
+    const { insights, reinforcement } = await callPatternAgent(windowEntries, archivedSummaries, _insightsRange, apiKey);
     if (!container.isConnected) return;
-    savePatternCache({ insights, entryCount: entries.length, ts: Date.now() });
-    renderInsightCards(container, insights);
+    savePatternCache({ insights, reinforcement, entryCount: totalEntryCount, range: _insightsRange, ts: Date.now() });
+    const rSlot = document.getElementById('reinforcement-slot');
+    if (rSlot && reinforcement) {
+      rSlot.innerHTML = `<div class="reinforcement-card"><p class="reinforcement-text">${esc(reinforcement)}</p></div>`;
+    }
+    renderInsightCards(container, insights, windowEntries);
   } catch (err) {
     if (!container.isConnected) return;
     container.innerHTML = `<div class="pattern-section">
@@ -602,7 +749,7 @@ async function renderPatternSection(entries, container) {
       </div>
     </div>`;
     document.getElementById('pattern-retry').addEventListener('click', () => {
-      renderPatternSection(entries, container);
+      renderPatternSection(windowEntries, archivedSummaries, totalEntryCount, container);
     });
   }
 }
@@ -679,51 +826,42 @@ function closeContextualInsightCard() {
 
 // ── Render insights ───────────────────────────
 function renderInsights() {
-  const entries = getEntries();
-  const body = document.getElementById('insights-body');
+  const allEntries    = getEntries();
+  const body          = document.getElementById('insights-body');
 
-  if (entries.length === 0) {
+  if (allEntries.length === 0) {
     body.innerHTML = `
       <div class="empty-insights">
-        <span class="empty-insights-emoji">📊</span>
         <p class="empty-insights-title">No data yet</p>
-        <p class="empty-insights-sub">Log seizures to see patterns emerge.<br>Your data stays private on your device.</p>
-      </div>
-    `;
+        <p class="empty-insights-sub">Log events to see patterns emerge.<br>Your data stays private on this device.</p>
+      </div>`;
     return;
   }
 
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const thisMonth = entries.filter(e => new Date(e.time) >= startOfMonth).length;
-
-  const typeCounts = {};
-  entries.forEach(e => {
-    const k = e.type || 'Unknown';
-    typeCounts[k] = (typeCounts[k] || 0) + 1;
-  });
-  const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+  const windowEntries = filterByRange(allEntries, _insightsRange);
+  const metrics       = computeInsightsMetrics(windowEntries, _insightsRange);
 
   body.innerHTML = `
-    <div class="insights-grid">
-      <div class="insight-card">
-        <span class="insight-num">${entries.length}</span>
-        <span class="insight-label">Total</span>
+    <div class="insights-board">
+      <div class="range-pills" role="group" aria-label="Date range">
+        <button class="range-pill${_insightsRange===30?' active':''}" data-range="30">Last 30 days</button>
+        <button class="range-pill${_insightsRange===90?' active':''}" data-range="90">Last 90 days</button>
+        <button class="range-pill${!_insightsRange?' active':''}"  data-range="all">All time</button>
       </div>
-      <div class="insight-card">
-        <span class="insight-num">${thisMonth}</span>
-        <span class="insight-label">This month</span>
-      </div>
-      <div class="insight-card">
-        <span class="insight-num ${topType ? 'is-text' : ''}">${topType ? esc(topType[0]) : '—'}</span>
-        <span class="insight-label">Top type</span>
-      </div>
-    </div>
+      ${renderMetricsGrid(metrics)}
+      <div id="reinforcement-slot"></div>
+      <div id="pattern-section"></div>
+    </div>`;
 
-    <div id="pattern-section"></div>
-  `;
+  body.querySelectorAll('.range-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _insightsRange = btn.dataset.range === 'all' ? null : Number(btn.dataset.range);
+      renderInsights();
+    });
+  });
 
-  renderPatternSection(entries, document.getElementById('pattern-section'));
+  const { recent: recentRaw, summaries } = compressOldEntries(allEntries);
+  renderPatternSection(windowEntries, summaries, allEntries.length, document.getElementById('pattern-section'));
 }
 
 // ── Category map ──────────────────────────────
