@@ -8,7 +8,8 @@ const BANNER_KEY        = 'vivea_banner_dismissed';
 const MED_LOG_PFX       = 'vivea_meds_';
 const ACCOUNT_KEY       = 'vivea_account';
 const API_KEY_KEY       = 'vivea_api_key';
-const PATTERN_CACHE_KEY = 'vivea_pattern_cache';
+const PATTERN_CACHE_KEY   = 'vivea_pattern_cache';
+const PATTERN_HISTORY_KEY = 'vivea_pattern_history';
 
 function getProfile() {
   try { return JSON.parse(localStorage.getItem(OB_PROFILE_KEY)); } catch { return null; }
@@ -21,6 +22,7 @@ function getAccount() {
 function setAccount(a) { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(a)); }
 
 let _lastLoggedEntry = null;
+let _currentContextualFp = null;
 
 // ── Storage ───────────────────────────────────
 function getEntries() {
@@ -243,7 +245,44 @@ function savePatternCache(data) {
   localStorage.setItem(PATTERN_CACHE_KEY, JSON.stringify(data));
 }
 
-function buildPatternPrompt(entries, profile) {
+function getPatternHistory() {
+  try { return JSON.parse(localStorage.getItem(PATTERN_HISTORY_KEY)) || {}; } catch { return {}; }
+}
+
+function savePatternHistory(h) {
+  localStorage.setItem(PATTERN_HISTORY_KEY, JSON.stringify(h));
+}
+
+function insightFingerprint(ins) {
+  return `${ins.type || 'pattern'}:${(ins.headline || '').slice(0, 40).toLowerCase().trim()}`;
+}
+
+function trackInsightSurfaced(ins) {
+  const h = getPatternHistory();
+  const fp = insightFingerprint(ins);
+  const rec = h[fp] || { fingerprint: fp, times_surfaced: 0, times_dismissed: 0, times_confirmed: 0, last_surfaced: null };
+  rec.times_surfaced++;
+  rec.last_surfaced = new Date().toISOString();
+  h[fp] = rec;
+  savePatternHistory(h);
+  return fp;
+}
+
+function trackInsightDismissed(fp) {
+  const h = getPatternHistory();
+  if (!h[fp]) return;
+  h[fp].times_dismissed++;
+  savePatternHistory(h);
+}
+
+function trackInsightConfirmed(fp) {
+  const h = getPatternHistory();
+  if (!h[fp]) return;
+  h[fp].times_confirmed++;
+  savePatternHistory(h);
+}
+
+function buildPatternPrompt(entries, profile, patternHistory) {
   const profileParts = [];
   if (profile) {
     if (profile.userType) profileParts.push(`User type: ${profile.userType.replace('_', ' ')}`);
@@ -278,18 +317,28 @@ function buildPatternPrompt(entries, profile) {
     return parts.join(' | ');
   });
 
+  const historyParts = Object.values(patternHistory || {});
+  let historySection = '';
+  if (historyParts.length > 0) {
+    const lines = historyParts.map(r =>
+      `- "${r.fingerprint.replace(/^[^:]+:/, '')}": surfaced ${r.times_surfaced}×, confirmed ${r.times_confirmed}×, dismissed ${r.times_dismissed}×`
+    );
+    historySection = `Previously surfaced patterns (use to refine confidence and avoid repetition):\n${lines.join('\n')}`;
+  }
+
   const system = `You are a neurological pattern analyst helping people with epilepsy understand their health data. Analyze the log entries and profile below. Return ONLY a JSON array of exactly 3 insight objects. No markdown, no code blocks, no preamble — just the raw JSON array starting with [ and ending with ]. Each object must have exactly these fields: type (one of: "pattern", "trend", "gap"), headline (one concise sentence), detail (2-3 sentences of explanation in plain language appropriate for a patient), confidence ("high", "medium", or "low").`;
 
   const userMsg = [
     profileParts.length ? `Profile:\n${profileParts.join('\n')}` : '',
     `Log entries (${entries.length} total, newest first):\n${entryLines.join('\n')}`,
+    historySection,
   ].filter(Boolean).join('\n\n');
 
   return { system, user: userMsg };
 }
 
 async function callPatternAgent(entries, apiKey) {
-  const { system, user } = buildPatternPrompt(entries, getProfile());
+  const { system, user } = buildPatternPrompt(entries, getProfile(), getPatternHistory());
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -319,21 +368,119 @@ async function callPatternAgent(entries, apiKey) {
   return insights;
 }
 
+function buildContextualPrompt(entry, allEntries, profile, patternHistory) {
+  const d = new Date(entry.time);
+  const when = `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  const parts = [
+    when,
+    `${entry.category}${entry.type && entry.type !== entry.category ? ` (${entry.type})` : ''}`,
+  ];
+  if (entry.intensity) parts.push(entry.intensity);
+  if (entry.duration)  parts.push(entry.duration);
+  if ((entry.triggers || []).length) parts.push(`triggers: ${entry.triggers.join(', ')}`);
+  if ((entry.symptoms || []).length) parts.push(`symptoms: ${entry.symptoms.join(', ')}`);
+  if (entry.medication) parts.push(`med: ${entry.medication}${entry.dose ? ` ${entry.dose}` : ''}`);
+  if (entry.notes) parts.push(`notes: "${entry.notes}"`);
+
+  const confirmedLines = Object.values(patternHistory || {})
+    .filter(r => r.times_confirmed >= 1)
+    .map(r => `- ${r.fingerprint.replace(/^[^:]+:/, '')}`);
+
+  const system = `You are a neurological pattern analyst. A user just logged a health event. Based on this event and their history, return ONLY a single JSON object (no markdown, no code fences) with these fields: type ("pattern", "trend", or "gap"), headline (one concise sentence), detail (1-2 sentences in plain language), confidence ("high", "medium", or "low"). Focus on the most actionable insight for this specific entry.`;
+
+  const userMsg = [
+    `Entry just logged:\n${parts.join(' | ')}`,
+    `Total log entries: ${allEntries.length}`,
+    profile && profile.userType ? `User type: ${profile.userType.replace('_', ' ')}` : '',
+    profile && (profile.triggers || []).length ? `Known triggers: ${profile.triggers.join(', ')}` : '',
+    confirmedLines.length ? `Previously confirmed patterns:\n${confirmedLines.join('\n')}` : '',
+  ].filter(Boolean).join('\n\n');
+
+  return { system, user: userMsg };
+}
+
+async function callContextualAgent(entry, entries, apiKey) {
+  const { system, user } = buildContextualPrompt(entry, entries, getProfile(), getPatternHistory());
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      system,
+      messages: [{ role: 'user', content: user }],
+    }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const raw = (data.content[0]?.text || '').trim();
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+  const ins = JSON.parse(cleaned);
+  if (typeof ins !== 'object' || Array.isArray(ins) || !ins.headline) return null;
+  return ins;
+}
+
 function renderInsightCards(container, insights) {
   const confLabel = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence' };
-  const cards = insights.slice(0, 3).map(ins => {
+  const thumbSvgUp = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
+  const thumbSvgDn = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
+
+  const fingerprints = insights.slice(0, 3).map(ins => trackInsightSurfaced(ins));
+  const historyAfter = getPatternHistory();
+
+  const cards = insights.slice(0, 3).map((ins, i) => {
+    const fp   = fingerprints[i];
+    const rec  = historyAfter[fp] || {};
     const type = ['pattern', 'trend', 'gap'].includes(ins.type) ? ins.type : 'pattern';
     const conf = ['high', 'medium', 'low'].includes(ins.confidence) ? ins.confidence : 'medium';
+    const isValidated = (rec.times_confirmed || 0) >= 2;
+    const badge = isValidated
+      ? `<span class="pattern-badge pattern-badge-validated">Validated finding</span>`
+      : `<span class="pattern-badge pattern-badge-emerging">Emerging pattern</span>`;
     return `<article class="pattern-card pattern-card-${type}">
+      <div class="pattern-card-top">
+        ${badge}
+        <div class="pattern-thumbs">
+          <button class="pattern-thumb pattern-thumb-up" data-fp="${esc(fp)}" aria-label="Confirm">${thumbSvgUp}</button>
+          <button class="pattern-thumb pattern-thumb-down" data-fp="${esc(fp)}" aria-label="Dismiss">${thumbSvgDn}</button>
+        </div>
+      </div>
       <p class="pattern-headline">${esc(ins.headline || '')}</p>
       <p class="pattern-detail">${esc(ins.detail || '')}</p>
       <span class="pattern-confidence pattern-conf-${conf}">${esc(confLabel[conf])}</span>
     </article>`;
   }).join('');
+
   container.innerHTML = `<div class="pattern-section">
     <h3 class="section-label">AI Pattern Analysis</h3>
     <div class="pattern-cards">${cards}</div>
   </div>`;
+
+  container.querySelectorAll('.pattern-thumb-up').forEach(btn => {
+    btn.addEventListener('click', () => {
+      trackInsightConfirmed(btn.dataset.fp);
+      btn.classList.add('active');
+      btn.closest('.pattern-thumbs').querySelector('.pattern-thumb-down').classList.remove('active');
+      const rec = getPatternHistory()[btn.dataset.fp] || {};
+      if ((rec.times_confirmed || 0) >= 2) {
+        const badgeEl = btn.closest('.pattern-card').querySelector('.pattern-badge');
+        if (badgeEl) { badgeEl.className = 'pattern-badge pattern-badge-validated'; badgeEl.textContent = 'Validated finding'; }
+      }
+    });
+  });
+
+  container.querySelectorAll('.pattern-thumb-down').forEach(btn => {
+    btn.addEventListener('click', () => {
+      trackInsightDismissed(btn.dataset.fp);
+      btn.classList.add('active');
+      btn.closest('.pattern-thumbs').querySelector('.pattern-thumb-up').classList.remove('active');
+    });
+  });
 }
 
 async function renderPatternSection(entries, container) {
@@ -404,6 +551,39 @@ async function renderPatternSection(entries, container) {
   }
 }
 
+// ── Contextual post-log insight ───────────────
+async function maybeShowContextualInsight(entry) {
+  const apiKey = localStorage.getItem(API_KEY_KEY);
+  if (!apiKey) return;
+  const entries = getEntries();
+  if (entries.length < 3) return;
+  try {
+    const ins = await callContextualAgent(entry, entries, apiKey);
+    if (ins && ins.headline) showContextualInsightCard(ins);
+  } catch { /* silent — contextual insight is optional */ }
+}
+
+function showContextualInsightCard(ins) {
+  const ppSheet = document.getElementById('screen-pp-sheet');
+  if (ppSheet && !ppSheet.hidden) return;
+  const sheet   = document.getElementById('screen-contextual-insight');
+  const scrim   = document.getElementById('ci-scrim');
+  const content = document.getElementById('ci-content');
+
+  _currentContextualFp = trackInsightSurfaced(ins);
+  content.innerHTML = `<p class="ci-headline">${esc(ins.headline || '')}</p><p class="ci-detail">${esc(ins.detail || '')}</p>`;
+  scrim.hidden  = false;
+  sheet.hidden  = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add('active')));
+}
+
+function closeContextualInsightCard() {
+  const sheet = document.getElementById('screen-contextual-insight');
+  const scrim = document.getElementById('ci-scrim');
+  sheet.classList.remove('active');
+  setTimeout(() => { sheet.hidden = true; scrim.hidden = true; _currentContextualFp = null; }, 300);
+}
+
 // ── Render insights ───────────────────────────
 function renderInsights() {
   const entries = getEntries();
@@ -437,13 +617,6 @@ function renderInsights() {
   }));
   const topTrigger = Object.entries(triggerCounts).sort((a, b) => b[1] - a[1])[0];
 
-  const byMonth = {};
-  entries.forEach(e => {
-    const key = new Date(e.time).toLocaleDateString([], { year: 'numeric', month: 'long' });
-    if (!byMonth[key]) byMonth[key] = [];
-    byMonth[key].push(e);
-  });
-
   body.innerHTML = `
     <div class="insights-grid">
       <div class="insight-card">
@@ -470,21 +643,6 @@ function renderInsights() {
         <span class="top-trigger-count">${topTrigger[1]} ${topTrigger[1] === 1 ? 'time' : 'times'}</span>
       </div>
     </div>` : ''}
-
-    <div>
-      <h3 class="section-label">By month</h3>
-      ${Object.entries(byMonth).map(([month, mes]) => `
-        <div class="month-group">
-          <p class="month-heading">
-            ${esc(month)}
-            <span class="month-count">${mes.length}</span>
-          </p>
-          <div class="month-entries">
-            ${mes.map(entryCardHTML).join('')}
-          </div>
-        </div>
-      `).join('')}
-    </div>
   `;
 
   renderPatternSection(entries, document.getElementById('pattern-section'));
@@ -561,6 +719,7 @@ function showSuccess() {
     renderHome();
     if (_lastLoggedEntry) {
       checkProgressiveProfiling(_lastLoggedEntry);
+      maybeShowContextualInsight(_lastLoggedEntry);
       _lastLoggedEntry = null;
     }
   }, 1800);
@@ -2013,6 +2172,16 @@ document.getElementById('btn-insights-create-account').addEventListener('click',
 
 // PP sheet skip
 document.getElementById('btn-pp-skip').addEventListener('click', closePPSheet);
+
+// Contextual insight card
+document.getElementById('btn-ci-confirm').addEventListener('click', () => {
+  if (_currentContextualFp) trackInsightConfirmed(_currentContextualFp);
+  closeContextualInsightCard();
+});
+document.getElementById('btn-ci-dismiss').addEventListener('click', () => {
+  if (_currentContextualFp) trackInsightDismissed(_currentContextualFp);
+  closeContextualInsightCard();
+});
 
 // More drawer
 document.getElementById('nav-more-btn').addEventListener('click', openMoreDrawer);
