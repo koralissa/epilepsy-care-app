@@ -78,6 +78,8 @@ function switchTab(tabName) {
     if (gate) gate.hidden = !!localStorage.getItem('vivea_account') || insightsGateDismissed;
     renderInsights();
     showHint('insights');
+  } else if (tabName === 'assist') {
+    renderAssist();
   } else {
     renderHome();
   }
@@ -1080,6 +1082,14 @@ function populateQuickForm(entry) {
 // ── Event listeners ───────────────────────────
 document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.view));
+});
+
+// Assist chat form
+document.getElementById('assist-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const input = document.getElementById('assist-input');
+  const text = (input.value || '').trim();
+  if (text) assistSend(text);
 });
 
 // FAB opens the picker
@@ -2219,6 +2229,210 @@ function obInitScreens() {
     document.getElementById('ob-device-types').hidden = true;
   });
 })();
+
+// ── Assist Agent ──────────────────────────────
+
+let _assistHistory = [];
+
+const ASSIST_SUGGESTIONS = [
+  'What are my most common triggers?',
+  'How often am I having seizures?',
+  'What patterns has Vivea noticed?',
+];
+
+function buildAssistSystemPrompt(entries, profile) {
+  const profileParts = [];
+  if (profile) {
+    if (profile.userType) profileParts.push(`User type: ${profile.userType.replace('_', ' ')}`);
+    if ((profile.seizureTypes || []).length) profileParts.push(`Seizure types: ${profile.seizureTypes.join(', ')}`);
+    if (profile.takingMeds === 'yes' && (profile.medications || []).length) {
+      const medStr = profile.medications.map(m =>
+        typeof m === 'object'
+          ? `${m.name}${m.strength ? ` ${m.strength}${m.unit || 'mg'}` : ''}${m.timesPerDay ? ` (${(FREQ_CONFIG[m.timesPerDay] || {}).label || `${m.timesPerDay}x/day`})` : ''}`
+          : String(m)
+      ).join('; ');
+      profileParts.push(`Medications: ${medStr}`);
+    }
+    if ((profile.triggers || []).length) profileParts.push(`Known triggers: ${profile.triggers.join(', ')}`);
+    if (profile.hasDevice === 'yes' && profile.deviceType) profileParts.push(`Device: ${profile.deviceType}`);
+  }
+
+  const entryLines = entries.slice().reverse().map(e => {
+    const d = new Date(e.time);
+    const datePart = d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+    const timePart = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const parts = [
+      `${datePart} ${timePart}`,
+      `${e.category}${e.type && e.type !== e.category ? ` (${e.type})` : ''}`,
+    ];
+    if (e.intensity)                    parts.push(e.intensity);
+    if (e.duration)                     parts.push(e.duration);
+    if ((e.triggers  || []).length)     parts.push(`triggers: ${e.triggers.join(', ')}`);
+    if ((e.symptoms  || []).length)     parts.push(`symptoms: ${e.symptoms.join(', ')}`);
+    if (e.medication)                   parts.push(`med: ${e.medication}${e.dose ? ` ${e.dose}` : ''}${e.reason ? ` (${e.reason})` : ''}`);
+    if (e.notes)                        parts.push(`notes: "${e.notes}"`);
+    if (e.completeness === 'partial')   parts.push('PARTIAL');
+    return parts.join(' | ');
+  });
+
+  const profileSection = profileParts.length
+    ? `---USER PROFILE---\n${profileParts.join('\n')}`
+    : '';
+  const logSection = entries.length
+    ? `---LOG HISTORY (${entries.length} entries, newest first)---\n${entryLines.join('\n')}`
+    : '---LOG HISTORY---\nNo entries yet.';
+
+  return [
+    'You are Vivea\'s Assist Agent — a care-aware AI that helps people with epilepsy understand their own patterns. You have access to this user\'s complete log history and profile. Answer questions based only on their actual data. Be warm, clear, and never use clinical jargon without explanation. Never make medication recommendations. If you don\'t have enough data to answer confidently, say so. Always remind the user to discuss findings with their neurologist.',
+    profileSection,
+    logSection,
+  ].filter(Boolean).join('\n\n');
+}
+
+async function callAssistAgent(messages, apiKey) {
+  const system = buildAssistSystemPrompt(getEntries(), getProfile());
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system,
+      messages,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error?.message || `API error ${res.status}`);
+  }
+  const data = await res.json();
+  return (data.content[0]?.text || '').trim();
+}
+
+function formatAssistReply(text) {
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^[-•] (.+)$/gm, '• $1')
+    .replace(/\n/g, '<br>');
+}
+
+function assistAppendMessage(role, text) {
+  const log = document.getElementById('assist-messages');
+  if (!log) return;
+  const empty = log.querySelector('.assist-empty');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = `msg msg-${role === 'user' ? 'user' : 'assist'}`;
+  const content = role === 'user'
+    ? esc(text).replace(/\n/g, '<br>')
+    : formatAssistReply(text);
+  div.innerHTML = `<div class="msg-bubble">${content}</div>`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function assistShowTyping() {
+  const log = document.getElementById('assist-messages');
+  if (!log) return;
+  const div = document.createElement('div');
+  div.className = 'msg msg-assist msg-typing';
+  div.id = 'assist-typing';
+  div.innerHTML = `<div class="msg-bubble"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function assistHideTyping() {
+  const t = document.getElementById('assist-typing');
+  if (t) t.remove();
+}
+
+async function assistSend(text) {
+  const apiKey = localStorage.getItem(API_KEY_KEY);
+  if (!apiKey) return;
+  text = text.trim();
+  if (!text) return;
+
+  _assistHistory.push({ role: 'user', content: text });
+  assistAppendMessage('user', text);
+  assistShowTyping();
+
+  const input  = document.getElementById('assist-input');
+  const sendBtn = document.querySelector('.assist-send-btn');
+  if (input)   input.value = '';
+  if (sendBtn) sendBtn.disabled = true;
+
+  try {
+    const reply = await callAssistAgent(_assistHistory, apiKey);
+    assistHideTyping();
+    _assistHistory.push({ role: 'assistant', content: reply });
+    assistAppendMessage('assistant', reply);
+  } catch (err) {
+    assistHideTyping();
+    _assistHistory.push({ role: 'assistant', content: `Sorry, I couldn't respond right now. ${err.message || 'Please try again.'}` });
+    assistAppendMessage('assistant', `Sorry, I couldn't respond right now. ${err.message || 'Please try again.'}`);
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
+    if (input)   input.focus();
+  }
+}
+
+function renderAssist() {
+  const body = document.getElementById('assist-body');
+  if (!body) return;
+
+  // Already showing chat — preserve state across tab switches
+  if (document.getElementById('assist-messages')) return;
+
+  const apiKey = localStorage.getItem(API_KEY_KEY);
+
+  if (!apiKey) {
+    body.innerHTML = `
+      <div class="assist-apikey-prompt">
+        <p class="assist-apikey-msg">Enter your Anthropic API key to enable Assist.</p>
+        <div class="assist-apikey-row">
+          <input type="password" id="assist-apikey-input" class="input-field assist-apikey-input"
+            placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
+          <button type="button" id="assist-apikey-save" class="assist-apikey-save-btn">Save</button>
+        </div>
+        <p class="assist-apikey-note">Stored on this device only. Sent only to Anthropic's API.</p>
+      </div>`;
+    document.getElementById('assist-apikey-save').addEventListener('click', () => {
+      const val = (document.getElementById('assist-apikey-input').value || '').trim();
+      if (!val) return;
+      localStorage.setItem(API_KEY_KEY, val);
+      body.innerHTML = '';
+      renderAssist();
+    });
+    return;
+  }
+
+  body.innerHTML = `
+    <div id="assist-messages" class="assist-messages" role="log" aria-live="polite">
+      <div class="assist-empty">
+        <p class="assist-empty-headline">Ask me anything about your seizure patterns, triggers, or medication history. I know your logs.</p>
+        <div class="assist-suggestions">
+          ${ASSIST_SUGGESTIONS.map(q => `<button class="assist-suggestion">${esc(q)}</button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  document.querySelectorAll('.assist-suggestion').forEach(btn => {
+    btn.addEventListener('click', () => assistSend(btn.textContent));
+  });
+
+  if (_assistHistory.length > 0) {
+    const msgs = document.getElementById('assist-messages');
+    msgs.innerHTML = '';
+    _assistHistory.forEach(m => assistAppendMessage(m.role, m.content));
+  }
+}
 
 // ── Event wiring (global UI) ──────────────────
 
