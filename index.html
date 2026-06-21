@@ -826,52 +826,56 @@
           <span>API Key &amp; Settings</span>
         </button>
 
-        <p class="more-section-label">Demo Mode</p>
-        <button class="more-row" id="btn-demo-reset">
-          <!-- Lucide: rotate-ccw -->
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-          <span>Reset Onboarding</span>
-        </button>
-        <div class="more-persona-section">
-          <p class="more-section-label more-section-label-sm">Load persona</p>
-          <div class="persona-list">
-            <button class="persona-row" data-persona="sarah">
-              <div class="persona-row-info">
-                <span class="persona-row-name">Sarah</span>
-                <span class="persona-row-type">Newly Diagnosed</span>
-              </div>
-              <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            </button>
-            <button class="persona-row" data-persona="marcus">
-              <div class="persona-row-info">
-                <span class="persona-row-name">Marcus</span>
-                <span class="persona-row-type">Drug Resistant</span>
-              </div>
-              <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            </button>
-            <button class="persona-row" data-persona="maya">
-              <div class="persona-row-info">
-                <span class="persona-row-name">Maya</span>
-                <span class="persona-row-type">Well Maintained</span>
-              </div>
-              <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            </button>
-            <button class="persona-row" data-persona="james">
-              <div class="persona-row-info">
-                <span class="persona-row-name">James</span>
-                <span class="persona-row-type">VNS User</span>
-              </div>
-              <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            </button>
+        <div id="more-demo-section">
+          <p class="more-section-label">Demo Mode</p>
+          <button class="more-row" id="btn-demo-reset">
+            <!-- Lucide: rotate-ccw -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Reset Onboarding</span>
+          </button>
+          <div class="more-persona-section">
+            <p class="more-section-label more-section-label-sm">Load persona</p>
+            <div class="persona-list">
+              <button class="persona-row" data-persona="sarah">
+                <div class="persona-row-info">
+                  <span class="persona-row-name">Sarah</span>
+                  <span class="persona-row-type">Newly Diagnosed</span>
+                </div>
+                <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button class="persona-row" data-persona="marcus">
+                <div class="persona-row-info">
+                  <span class="persona-row-name">Marcus</span>
+                  <span class="persona-row-type">Drug Resistant</span>
+                </div>
+                <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button class="persona-row" data-persona="maya">
+                <div class="persona-row-info">
+                  <span class="persona-row-name">Maya</span>
+                  <span class="persona-row-type">Well Maintained</span>
+                </div>
+                <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button class="persona-row" data-persona="james">
+                <div class="persona-row-info">
+                  <span class="persona-row-name">James</span>
+                  <span class="persona-row-type">VNS User</span>
+                </div>
+                <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+            </div>
           </div>
         </div>
 
-        <p class="more-section-label">Research</p>
-        <button class="more-row" id="btn-sut-open">
-          <!-- Lucide: sparkles -->
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
-          <span>Synthetic User Test</span>
-        </button>
+        <div id="more-research-section">
+          <p class="more-section-label">Research</p>
+          <button class="more-row" id="btn-sut-open">
+            <!-- Lucide: sparkles -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+            <span>Synthetic User Test</span>
+          </button>
+        </div>
 
       </div>
     </div>

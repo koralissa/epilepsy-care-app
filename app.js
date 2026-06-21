@@ -1,5 +1,13 @@
 'use strict';
 
+// Flip to false before public ship — hides all demo and research UI in one line.
+const DEMO_MODE = true;
+if (!DEMO_MODE) {
+  document.getElementById('more-demo-section').hidden     = true;
+  document.getElementById('more-research-section').hidden = true;
+  document.getElementById('screen-sut').hidden            = true;
+}
+
 const STORAGE_KEY       = 'epitrack_entries';
 const OB_DONE_KEY       = 'vivea_onboarded';
 const OB_PROFILE_KEY    = 'vivea_profile';
