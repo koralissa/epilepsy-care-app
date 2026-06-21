@@ -818,6 +818,14 @@
     <div id="more-drawer" class="more-drawer" hidden>
       <div class="modal-handle" aria-hidden="true"></div>
       <div class="more-drawer-body">
+
+        <p class="more-section-label">Settings</p>
+        <button class="more-row" id="btn-settings">
+          <!-- Lucide: settings -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>API Key &amp; Settings</span>
+        </button>
+
         <p class="more-section-label">Demo Mode</p>
         <button class="more-row" id="btn-demo-reset">
           <!-- Lucide: rotate-ccw -->
@@ -856,6 +864,58 @@
               <svg class="persona-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
           </div>
+        </div>
+
+        <p class="more-section-label">Research</p>
+        <button class="more-row" id="btn-sut-open">
+          <!-- Lucide: sparkles -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+          <span>Synthetic User Test</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ── Settings sheet ────────────────────────── -->
+    <div id="settings-sheet" class="screen-modal settings-sheet" aria-hidden="true">
+      <div class="modal-handle" aria-hidden="true"></div>
+      <div class="settings-body">
+        <h2 class="settings-title">Settings</h2>
+        <div class="settings-field">
+          <label class="settings-field-label" for="settings-api-key">Anthropic API Key</label>
+          <div class="settings-api-row">
+            <input type="password" id="settings-api-key" class="input-field settings-api-input" placeholder="sk-ant-…" autocomplete="off" autocorrect="off" spellcheck="false">
+            <button type="button" class="settings-show-btn" id="btn-settings-show">Show</button>
+          </div>
+          <p class="settings-note">Used for Pattern Agent, Today Agent, Assist, and Synthetic User Tests. Never shared.</p>
+        </div>
+        <button type="button" class="settings-save-btn" id="btn-settings-save">Save</button>
+      </div>
+    </div>
+
+    <!-- ── Synthetic User Test overlay ───────────── -->
+    <div id="screen-sut" class="sut-overlay" hidden>
+      <div class="sut-shell">
+        <header class="sut-header">
+          <h2 class="sut-title">Synthetic User Test</h2>
+          <button class="sut-close-btn" id="btn-sut-close" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </header>
+        <div class="sut-body">
+          <section class="sut-section">
+            <h3 class="sut-section-label">1 — Select persona</h3>
+            <div class="sut-select-list" id="sut-persona-list"></div>
+          </section>
+          <section class="sut-section">
+            <h3 class="sut-section-label">2 — Select task</h3>
+            <div class="sut-select-list" id="sut-task-list"></div>
+            <textarea class="input-field sut-custom-task" id="sut-custom-task" placeholder="Or describe a custom task…" rows="2" autocomplete="off"></textarea>
+          </section>
+          <section class="sut-section sut-run-section">
+            <button class="sut-run-btn" id="btn-sut-run" disabled>Run synthetic user test</button>
+            <div id="sut-results"></div>
+          </section>
         </div>
       </div>
     </div>

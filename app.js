@@ -2766,6 +2766,21 @@ async function renderTodayAgent() {
 
 let _assistHistory = [];
 
+// ── Synthetic User Test ───────────────────────
+
+let _sutPersona = null;
+let _sutTask    = null;
+
+const SUT_TASKS = [
+  'Log a seizure immediately after it happens',
+  'Find out what your most common triggers are',
+  'Ask Assist why seizures happen more on certain days',
+  'Go back and add details to an incomplete entry',
+  'Prepare for a neurology appointment',
+  'Use VNS Activation log for the first time',
+];
+const SUT_VNS_TASK = 'Use VNS Activation log for the first time';
+
 const ASSIST_SUGGESTIONS = [
   'What are my most common triggers?',
   'How often am I having seizures?',
@@ -3109,6 +3124,309 @@ document.getElementById('btn-hcs-ok').addEventListener('click', () => {
   const sheet = document.getElementById('health-connect-sheet');
   sheet.classList.remove('active');
   sheet.setAttribute('aria-hidden', 'true');
+});
+
+// ── Settings ─────────────────────────────────
+function openSettingsSheet() {
+  closeMoreDrawer();
+  const sheet = document.getElementById('settings-sheet');
+  const input = document.getElementById('settings-api-key');
+  input.value = localStorage.getItem(API_KEY_KEY) || '';
+  input.type = 'password';
+  document.getElementById('btn-settings-show').textContent = 'Show';
+  sheet.classList.add('active');
+  sheet.removeAttribute('aria-hidden');
+}
+
+function closeSettingsSheet() {
+  const sheet = document.getElementById('settings-sheet');
+  sheet.classList.remove('active');
+  sheet.setAttribute('aria-hidden', 'true');
+}
+
+document.getElementById('btn-settings').addEventListener('click', openSettingsSheet);
+
+document.getElementById('btn-settings-show').addEventListener('click', () => {
+  const input = document.getElementById('settings-api-key');
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  document.getElementById('btn-settings-show').textContent = isHidden ? 'Hide' : 'Show';
+});
+
+document.getElementById('btn-settings-save').addEventListener('click', () => {
+  const val = (document.getElementById('settings-api-key').value || '').trim();
+  if (val) localStorage.setItem(API_KEY_KEY, val);
+  else localStorage.removeItem(API_KEY_KEY);
+  closeSettingsSheet();
+});
+
+// ── Synthetic User Test ────────────────────────
+function openSutModal() {
+  closeMoreDrawer();
+  _sutPersona = localStorage.getItem(DEMO_PERSONA_KEY) || null;
+  _sutTask    = null;
+  document.getElementById('sut-results').innerHTML = '';
+  document.getElementById('sut-custom-task').value = '';
+  document.getElementById('screen-sut').hidden = false;
+  renderSutPersonaList();
+  renderSutTaskList();
+  updateSutRunBtn();
+}
+
+function closeSutModal() {
+  document.getElementById('screen-sut').hidden = true;
+}
+
+function renderSutPersonaList() {
+  const container = document.getElementById('sut-persona-list');
+  container.innerHTML = Object.entries(DEMO_PERSONAS).map(([key, p]) => `
+    <button class="sut-select-row${_sutPersona === key ? ' sut-select-row--active' : ''}" data-persona="${esc(key)}">
+      <div class="persona-row-info">
+        <span class="persona-row-name">${esc(p.account.firstName)}</span>
+        <span class="persona-row-type">${esc(p.label)}</span>
+      </div>
+      <svg class="sut-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
+  `).join('');
+  container.querySelectorAll('.sut-select-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _sutPersona = btn.dataset.persona;
+      if (_sutPersona !== 'james' && _sutTask === SUT_VNS_TASK) _sutTask = null;
+      renderSutPersonaList();
+      renderSutTaskList();
+      updateSutRunBtn();
+    });
+  });
+}
+
+function renderSutTaskList() {
+  const container = document.getElementById('sut-task-list');
+  const tasks = _sutPersona === 'james' ? SUT_TASKS : SUT_TASKS.filter(t => t !== SUT_VNS_TASK);
+  container.innerHTML = tasks.map(t => `
+    <button class="sut-select-row${_sutTask === t ? ' sut-select-row--active' : ''}" data-task="${esc(t)}">
+      <span class="sut-task-text">${esc(t)}</span>
+      <svg class="sut-row-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
+  `).join('');
+  container.querySelectorAll('.sut-select-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _sutTask = btn.dataset.task;
+      document.getElementById('sut-custom-task').value = '';
+      renderSutTaskList();
+      updateSutRunBtn();
+    });
+  });
+}
+
+function updateSutRunBtn() {
+  const customTask = (document.getElementById('sut-custom-task').value || '').trim();
+  document.getElementById('btn-sut-run').disabled = !_sutPersona || (!_sutTask && !customTask);
+}
+
+const SUT_SYSTEM_PROMPT = `You are a synthetic user agent for usability testing. You simulate real users interacting with Vivea — a neurological health PWA for epilepsy tracking. You will be given a persona and a task. Simulate that user attempting the task. Think through what they would see, what they would tap, where they might get confused, and what they would feel. Consider that users may be post-ictal, have medication-induced cognitive side effects, or be logging on behalf of someone else. Return ONLY a JSON object — no markdown, no preamble — with this exact structure:
+{
+  "summary": "one sentence overall assessment",
+  "overallResult": "pass or partial or fail",
+  "taskCompletion": "completed or partially completed or abandoned",
+  "ease": "very easy or easy or moderate or difficult or very difficult",
+  "easeRationale": "one sentence explaining why",
+  "firstImpression": "what stood out immediately — positive or negative — in the first 3 seconds",
+  "navigationPath": ["array of strings — each step they took in order, what they tapped and where they went"],
+  "momentOfConfusion": "the single moment they were most uncertain or null if none",
+  "layoutObservations": "did the layout help or hinder — specific observations about information hierarchy, visual weight, element placement",
+  "patternFeedback": "does the interaction pattern make sense for this persona — would they expect this flow or be surprised by it",
+  "findings": [{"type": "pass or warn or fail", "title": "short finding title", "detail": "2-3 sentences explaining what happened and why it matters", "userQuote": "what this user would say out loud at this moment"}],
+  "recommendations": [{"priority": "high or medium or low", "change": "specific actionable change", "rationale": "why this would help this persona specifically"}],
+  "personaNotes": "how this persona's specific constraints — cognitive state, medication side effects, post-ictal recovery, VNS device — affected the experience differently than a typical user"
+}`;
+
+function buildSutUserPrompt(personaKey, task) {
+  const p = DEMO_PERSONAS[personaKey];
+  const prof = p.profile;
+  const lines = [];
+  lines.push(`PERSONA: ${p.account.firstName} (${p.label})`);
+  lines.push(`Diagnosis: ${prof.diagnosisType || 'Epilepsy'}, diagnosed ${prof.diagnosedAt || 'unknown'}`);
+  lines.push(`Seizure types: ${prof.seizureTypes.join(', ')}`);
+  lines.push(`Current medications: ${prof.medications.map(m =>
+    `${m.name} ${m.strength}${m.unit} ${m.timesPerDay === 1 ? 'once daily' : m.timesPerDay + 'x daily'}${m.note ? ' (' + m.note + ')' : ''}`
+  ).join('; ')}`);
+  if (prof.medicationHistory && prof.medicationHistory.length) {
+    lines.push(`Medication history (${prof.medicationHistory.length} prior meds): ${prof.medicationHistory.map(m =>
+      `${m.name} ${m.startDate}–${m.endDate}: ${m.reason}`
+    ).join('; ')}`);
+  }
+  if (prof.vnsDevice) {
+    lines.push(`VNS device: implanted ${prof.vnsImplanted}`);
+    if (prof.vnsSettings) lines.push(`VNS settings: cycle ${prof.vnsSettings.cycle}, magnet available: ${prof.vnsSettings.magnetAvailable}`);
+  }
+  if (prof.triggers && prof.triggers.length) lines.push(`Known triggers: ${prof.triggers.join(', ')}`);
+  if (prof.trackCycle === 'yes') lines.push('Tracks menstrual cycle: yes — catamenial pattern suspected');
+
+  // Infer cognitive/emotional state from persona
+  const cogMap = {
+    sarah: 'Newly diagnosed — anxious, still learning her condition, experiencing Lamictal side effects (dizziness, fatigue since last dose increase), uncertain about what is normal',
+    marcus: 'Long-term drug-resistant patient — frustrated with seizure burden, experiencing Keppra-related mood changes/irritability, experienced app user but cognitively fatigued',
+    maya:   'Well-managed patient — health-literate, cycle-aware, currently in perimenstrual high-risk window, motivated to track patterns',
+    james:  'Experienced long-term patient (11 years) — pragmatic, comfortable with VNS magnet protocol, proactive about device management',
+  };
+  if (cogMap[personaKey]) lines.push(`Cognitive/emotional state: ${cogMap[personaKey]}`);
+
+  lines.push('');
+  lines.push(`RECENT LOG ENTRIES (${p.entries.length} total):`);
+  p.entries.forEach((e, i) => {
+    const daysAgo = Math.round((Date.now() - new Date(e.time).getTime()) / _DAY);
+    let s = `${i+1}. [${e.category}] ${daysAgo}d ago`;
+    if (e.type && e.type !== e.category) s += ` — ${e.type}`;
+    if (e.duration) s += `, duration: ${e.duration}`;
+    if (e.triggers && e.triggers.length) s += `, triggers: ${e.triggers.join('+')}`;
+    if (e.symptoms && e.symptoms.length) s += `, symptoms: ${e.symptoms.join('+')}`;
+    if (e.medication) s += `, med: ${e.medication}`;
+    if (e.trigger) s += `, activation trigger: ${e.trigger}`;
+    if (e.outcome) s += `, outcome: ${e.outcome}`;
+    if (e.notes) s += ` | "${e.notes}"`;
+    s += ` [${e.completeness}]`;
+    lines.push(s);
+  });
+
+  lines.push('');
+  lines.push(`TASK: ${task}`);
+  lines.push('');
+  lines.push('APP DESCRIPTION: Vivea is a neurological health PWA for epilepsy tracking. Nav: Today tab (AI daily briefing with proactive pattern surfacing, deterministic stats, incomplete entry follow-up), Insights tab (Pattern Agent AI analysis with 3 typed insight cards — pattern/trend/gap — human in the loop thumbs up/down, confidence scoring, date range selector), FAB center button (opens log sheet: seizure, aura, side effect, medication, VNS activation if vnsDevice true, note), Assist tab (conversational AI over user\'s own log data, suggested questions), More tab (demo controls, research tools, settings). Post-seizure logging shows a passive acknowledgment card — no questions, no decisions, just warm reassurance. Entries can be partial and edited later. The app is designed for users who may be post-ictal, have medication-induced memory challenges, or be logging on behalf of someone else.');
+  return lines.join('\n');
+}
+
+async function runSutTest() {
+  const apiKey = localStorage.getItem(API_KEY_KEY);
+  const resultsEl = document.getElementById('sut-results');
+  if (!apiKey) {
+    resultsEl.innerHTML = `<p class="sut-no-key">Add your API key in Settings to run synthetic user tests.</p>`;
+    return;
+  }
+  const customTask = (document.getElementById('sut-custom-task').value || '').trim();
+  const task = _sutTask || customTask;
+  if (!_sutPersona || !task) return;
+
+  const personaName = DEMO_PERSONAS[_sutPersona].account.firstName;
+  resultsEl.innerHTML = `
+    <div class="sut-loading">
+      <span>Running ${esc(personaName)}'s session</span>
+      <span class="typing-dots">
+        <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+      </span>
+    </div>`;
+  document.getElementById('btn-sut-run').disabled = true;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        system: SUT_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: buildSutUserPrompt(_sutPersona, task) }],
+      }),
+    });
+    if (!resp.ok) throw new Error(`API ${resp.status}`);
+    const raw = await resp.json();
+    const text = (raw.content?.[0]?.text || '').trim();
+    let data;
+    try {
+      const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+      data = JSON.parse(cleaned);
+    } catch {
+      throw new Error('Could not parse JSON response');
+    }
+    renderSutResults(data);
+  } catch (err) {
+    resultsEl.innerHTML = `
+      <div class="sut-error">
+        <p>${esc(err.message || 'Something went wrong.')}</p>
+        <button class="sut-retry-btn" id="btn-sut-retry">Retry</button>
+      </div>`;
+    document.getElementById('btn-sut-retry').addEventListener('click', runSutTest);
+  } finally {
+    updateSutRunBtn();
+  }
+}
+
+function renderSutResults(data) {
+  const rColors  = { pass: 'green', partial: 'amber', fail: 'red' };
+  const eColors  = { 'very easy': 'green', 'easy': 'green', 'moderate': 'amber', 'difficult': 'red', 'very difficult': 'red' };
+  const fColors  = { pass: 'green', warn: 'amber', fail: 'red' };
+  const pColors  = { high: 'red', medium: 'amber', low: 'gray' };
+
+  const oColor = rColors[(data.overallResult || '').toLowerCase()] || 'gray';
+  const eColor = eColors[(data.ease || '').toLowerCase()] || 'gray';
+
+  const navHtml = (data.navigationPath || []).map((s, i) =>
+    `<li class="sut-nav-step"><span class="sut-nav-num">${i+1}</span><span>${esc(s)}</span></li>`
+  ).join('');
+
+  const confusionHtml = data.momentOfConfusion
+    ? `<div class="sut-confusion-card"><p class="sut-confusion-label">Moment of confusion</p><p>${esc(data.momentOfConfusion)}</p></div>`
+    : '';
+
+  const findingsHtml = (data.findings || []).length ? `
+    <div class="sut-findings">
+      <p class="sut-findings-label">Findings</p>
+      ${(data.findings).map(f => `
+        <div class="sut-finding sut-finding--${fColors[f.type] || 'gray'}">
+          <p class="sut-finding-title">${esc(f.title)}</p>
+          <p class="sut-finding-detail">${esc(f.detail)}</p>
+          <p class="sut-finding-quote">"${esc(f.userQuote)}"</p>
+        </div>`).join('')}
+    </div>` : '';
+
+  const recsHtml = (data.recommendations || []).length ? `
+    <div class="sut-recs">
+      <p class="sut-recs-label">Recommendations</p>
+      ${(data.recommendations).map(r => `
+        <div class="sut-rec">
+          <span class="sut-priority-badge sut-priority--${pColors[r.priority] || 'gray'}">${esc(r.priority)}</span>
+          <div class="sut-rec-body">
+            <p class="sut-rec-change">${esc(r.change)}</p>
+            <p class="sut-rec-rationale">${esc(r.rationale)}</p>
+          </div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const personaHtml = data.personaNotes ? `
+    <div class="sut-persona-notes">
+      <p class="sut-obs-label">Persona notes</p>
+      <p>${esc(data.personaNotes)}</p>
+    </div>` : '';
+
+  document.getElementById('sut-results').innerHTML = `
+    <div class="sut-results-inner">
+      <div class="sut-result-top">
+        <span class="sut-badge sut-badge--${oColor}">${esc(data.overallResult || '—')}</span>
+        <span class="sut-ease-pill sut-ease--${eColor}">${esc(data.ease || '—')}</span>
+        ${data.taskCompletion ? `<span class="sut-completion-text">${esc(data.taskCompletion)}</span>` : ''}
+      </div>
+      ${data.firstImpression ? `<p class="sut-first-impression">${esc(data.firstImpression)}</p>` : ''}
+      ${navHtml ? `<ol class="sut-nav-path">${navHtml}</ol>` : ''}
+      ${confusionHtml}
+      ${data.layoutObservations ? `<div class="sut-obs-card"><p class="sut-obs-label">Layout</p><p>${esc(data.layoutObservations)}</p></div>` : ''}
+      ${data.patternFeedback ? `<div class="sut-obs-card"><p class="sut-obs-label">Pattern fit</p><p>${esc(data.patternFeedback)}</p></div>` : ''}
+      ${findingsHtml}
+      ${recsHtml}
+      ${personaHtml}
+    </div>`;
+}
+
+document.getElementById('btn-sut-open').addEventListener('click', openSutModal);
+document.getElementById('btn-sut-close').addEventListener('click', closeSutModal);
+document.getElementById('btn-sut-run').addEventListener('click', runSutTest);
+document.getElementById('sut-custom-task').addEventListener('input', () => {
+  _sutTask = null;
+  renderSutTaskList();
+  updateSutRunBtn();
 });
 
 // More drawer
