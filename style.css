@@ -234,7 +234,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity var(--ease);
 }
+.entry-card:active { opacity: 0.72; }
 
 .entry-top {
   display: flex;
@@ -310,6 +314,95 @@ body {
   line-height: 1.5;
   margin-top: 2px;
 }
+
+/* ── Partial entry indicator ─────────────────── */
+.entry-partial-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--purple-500);
+  background: transparent;
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: 2px;
+}
+
+/* ── Log list ────────────────────────────────── */
+.today-body {
+  gap: 16px;
+  padding-bottom: 80px;
+}
+
+#log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-date-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-sec);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding-top: 4px;
+}
+
+/* ── Follow-up card ──────────────────────────── */
+.followup-card {
+  background: var(--purple-50);
+  border: 1px solid var(--purple-200);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.followup-text {
+  font-size: 15px;
+  color: var(--navy);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.followup-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.followup-btn-add {
+  flex: 1;
+  background: var(--purple-900);
+  color: var(--white);
+  border: none;
+  border-radius: 100px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+.followup-btn-add:active { background: var(--purple-700); }
+
+.followup-btn-dismiss {
+  flex: 1;
+  background: transparent;
+  color: var(--text-sec);
+  border: 1px solid var(--purple-200);
+  border-radius: 100px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+.followup-btn-dismiss:active { opacity: 0.7; }
 
 /* ── Bottom nav — white, elevated FAB center ──── */
 .bottom-nav {

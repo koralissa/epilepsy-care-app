@@ -10,6 +10,7 @@ const ACCOUNT_KEY       = 'vivea_account';
 const API_KEY_KEY       = 'vivea_api_key';
 const PATTERN_CACHE_KEY   = 'vivea_pattern_cache';
 const PATTERN_HISTORY_KEY = 'vivea_pattern_history';
+const FOLLOWUP_KEY_PFX    = 'vivea_followup_dismissed_';
 
 function getProfile() {
   try { return JSON.parse(localStorage.getItem(OB_PROFILE_KEY)); } catch { return null; }
@@ -23,6 +24,7 @@ function setAccount(a) { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(a)); }
 
 let _lastLoggedEntry = null;
 let _currentContextualTrackingIns = null;
+let _editingEntryId = null;
 
 // ── Storage ───────────────────────────────────
 function getEntries() {
@@ -36,6 +38,26 @@ function getEntries() {
 function addEntry(entry) {
   const entries = getEntries();
   entries.unshift(entry);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function isEntryComplete(entry) {
+  const cat = entry.category;
+  if (cat === 'Seizure')     return !!(entry.intensity && entry.duration && entry.type && entry.type !== 'Unknown');
+  if (cat === 'Aura')        return (entry.symptoms || []).length > 0;
+  if (cat === 'Side effect') return (entry.symptoms || []).length > 0 && !!entry.medication;
+  if (cat === 'Medication')  return !!(entry.medication && entry.reason);
+  if (cat === 'Note')        return !!(entry.notes && entry.notes.trim());
+  return true;
+}
+
+function updateEntry(updated) {
+  const entries = getEntries();
+  const idx = entries.findIndex(e => e.id === updated.id);
+  if (idx === -1) return;
+  updated.updated_at   = new Date().toISOString();
+  updated.completeness = isEntryComplete(updated) ? 'complete' : 'partial';
+  entries[idx] = updated;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
@@ -207,6 +229,10 @@ function closeLog() {
   const modal = document.getElementById('screen-log');
   modal.classList.remove('active');
   modal.setAttribute('aria-hidden', 'true');
+  if (_editingEntryId) {
+    _editingEntryId = null;
+    document.querySelector('#screen-log .modal-title').textContent = 'Log Seizure';
+  }
 }
 
 // ── Form ──────────────────────────────────────
@@ -232,7 +258,75 @@ function localISO() {
 function renderHome() {
   const greetEl = document.getElementById('greeting');
   if (greetEl) greetEl.textContent = greeting();
+  renderFollowUpCard();
+  renderLogList();
   renderMedsWidget();
+}
+
+function renderLogList() {
+  const container = document.getElementById('log-list');
+  if (!container) return;
+  const entries = getEntries();
+  if (entries.length === 0) {
+    container.innerHTML = `<div class="empty-state"><p>No entries yet.<br><strong>Tap + to log your first event.</strong></p></div>`;
+    return;
+  }
+  // Group by calendar date
+  const groups = [];
+  entries.forEach(e => {
+    const label = new Date(e.time).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    if (!groups.length || groups[groups.length - 1].label !== label) {
+      groups.push({ label, entries: [] });
+    }
+    groups[groups.length - 1].entries.push(e);
+  });
+  container.innerHTML = groups.map(g => `
+    <div class="log-date-group">
+      <p class="log-date-label">${esc(g.label)}</p>
+      ${g.entries.map(e => entryCardHTML(e)).join('')}
+    </div>`
+  ).join('');
+  container.querySelectorAll('.entry-card[data-entry-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      const entry = getEntries().find(e => e.id === card.dataset.entryId);
+      if (entry) openEntryForEdit(entry);
+    });
+  });
+}
+
+function renderFollowUpCard() {
+  const container = document.getElementById('followup-container');
+  if (!container) return;
+  container.innerHTML = '';
+  const now       = Date.now();
+  const twelveH   = 12 * 60 * 60 * 1000;
+  const twentyFourH = 24 * 60 * 60 * 1000;
+  const candidate = getEntries().find(e =>
+    (e.category === 'Seizure' || e.category === 'Aura') &&
+    e.completeness === 'partial' &&
+    (now - new Date(e.time).getTime()) < twelveH
+  );
+  if (!candidate) return;
+  const dismissKey  = `${FOLLOWUP_KEY_PFX}${candidate.id}`;
+  const dismissedAt = localStorage.getItem(dismissKey);
+  if (dismissedAt && (now - Number(dismissedAt)) < twentyFourH) return;
+  const label = candidate.category === 'Aura' ? 'an aura' : 'a seizure';
+  container.innerHTML = `
+    <div class="followup-card">
+      <p class="followup-text">You logged ${label} earlier. Want to add more details when you're ready?</p>
+      <div class="followup-actions">
+        <button class="followup-btn-add" id="btn-followup-add">Add details</button>
+        <button class="followup-btn-dismiss" id="btn-followup-dismiss">I'm good</button>
+      </div>
+    </div>`;
+  document.getElementById('btn-followup-add').addEventListener('click', () => {
+    container.innerHTML = '';
+    openEntryForEdit(candidate);
+  });
+  document.getElementById('btn-followup-dismiss').addEventListener('click', () => {
+    localStorage.setItem(dismissKey, String(now));
+    container.innerHTML = '';
+  });
 }
 
 // ── Pattern Agent ─────────────────────────────
@@ -314,6 +408,7 @@ function buildPatternPrompt(entries, profile, patternHistory) {
     if (e.medication) parts.push(`med: ${e.medication}${e.dose ? ` ${e.dose}` : ''}${e.reason ? ` (${e.reason})` : ''}`);
     if (e.ledToSeizure && e.ledToSeizure !== 'Not sure') parts.push(`led to seizure: ${e.ledToSeizure}`);
     if (e.notes) parts.push(`notes: "${e.notes}"`);
+    if (e.completeness === 'partial') parts.push('PARTIAL');
     return parts.join(' | ');
   });
 
@@ -326,7 +421,7 @@ function buildPatternPrompt(entries, profile, patternHistory) {
     historySection = `Previously surfaced patterns (use to refine confidence and avoid repetition):\n${lines.join('\n')}`;
   }
 
-  const system = `You are a neurological pattern analyst helping people with epilepsy understand their health data. Analyze the log entries and profile below. Return ONLY a JSON array of exactly 3 insight objects. No markdown, no code blocks, no preamble — just the raw JSON array starting with [ and ending with ]. Each object must have exactly these fields: type (one of: "pattern", "trend", "gap"), headline (one concise sentence), detail (2-3 sentences of explanation in plain language appropriate for a patient), confidence ("high", "medium", or "low").`;
+  const system = `You are a neurological pattern analyst helping people with epilepsy understand their health data. Analyze the log entries and profile below. Return ONLY a JSON array of exactly 3 insight objects. No markdown, no code blocks, no preamble — just the raw JSON array starting with [ and ending with ]. Each object must have exactly these fields: type (one of: "pattern", "trend", "gap"), headline (one concise sentence), detail (2-3 sentences of explanation in plain language appropriate for a patient), confidence ("high", "medium", or "low"). Some entries are marked PARTIAL — the user was unable to complete them at the time. Weight insights from partial entries with lower confidence.`;
 
   const userMsg = [
     profileParts.length ? `Profile:\n${profileParts.join('\n')}` : '',
@@ -667,12 +762,16 @@ function entryCardHTML(e) {
   const emoji = { Mild: '😐', Moderate: '😟', Severe: '😰' }[e.intensity] || '';
   const triggers = e.triggers || [];
   const displayType = cat === 'Seizure' ? esc(e.type || 'Unknown') : esc(cat);
+  const partialDot = e.completeness === 'partial'
+    ? `<span class="entry-partial-dot" aria-label="Partial entry"></span>`
+    : '';
   return `
-    <article class="entry-card ${cls}" role="listitem">
+    <article class="entry-card ${cls}" role="listitem" data-entry-id="${esc(e.id)}">
       <div class="entry-top">
         <div class="entry-heading">
           ${icon}
           <span class="entry-type-badge">${displayType}</span>
+          ${partialDot}
         </div>
         <div class="entry-meta">
           ${e.duration ? `<span class="entry-pill">${esc(e.duration)}</span>` : ''}
@@ -902,6 +1001,80 @@ function closeQuickLog() {
   document.getElementById('screen-quick-log').classList.remove('active');
   document.getElementById('screen-quick-log').setAttribute('aria-hidden', 'true');
   quickCat = null;
+  _editingEntryId = null;
+}
+
+function openEntryForEdit(entry) {
+  _editingEntryId = entry.id;
+  if (entry.category === 'Seizure') {
+    openLog();
+    document.querySelector('#screen-log .modal-title').textContent = 'Edit Seizure';
+    populateSeizureForm(entry);
+  } else {
+    openQuickLog(entry.category);
+    document.getElementById('quick-log-title').textContent = `Edit ${entry.category}`;
+    populateQuickForm(entry);
+  }
+}
+
+function populateSeizureForm(entry) {
+  const d = new Date(entry.time);
+  const p = n => String(n).padStart(2, '0');
+  document.getElementById('seizure-time').value =
+    `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  document.querySelectorAll('input[name="type"]').forEach(r => {
+    r.checked = r.value === (entry.type || 'Unknown');
+  });
+  document.querySelectorAll('input[name="intensity"]').forEach(r => {
+    r.checked = r.value === entry.intensity;
+  });
+  document.querySelectorAll('input[name="duration"]').forEach(r => {
+    r.checked = r.value === entry.duration;
+  });
+  document.querySelectorAll('input[name="triggers"]').forEach(cb => {
+    cb.checked = (entry.triggers || []).includes(cb.value);
+  });
+  document.querySelectorAll('input[name="device-used"]').forEach(r => {
+    r.checked = r.value === entry.deviceUsed;
+  });
+  document.getElementById('notes').value = entry.notes || '';
+}
+
+function populateQuickForm(entry) {
+  const d = new Date(entry.time);
+  const p = n => String(n).padStart(2, '0');
+  document.getElementById('quick-time').value =
+    `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  if (entry.category === 'Aura') {
+    document.querySelectorAll('input[name="symptoms"]').forEach(cb => {
+      cb.checked = (entry.symptoms || []).includes(cb.value);
+    });
+    document.querySelectorAll('input[name="triggers"]').forEach(cb => {
+      cb.checked = (entry.triggers || []).includes(cb.value);
+    });
+    document.querySelectorAll('input[name="led-to-seizure"]').forEach(r => {
+      r.checked = r.value === (entry.ledToSeizure || 'Not sure');
+    });
+  } else if (entry.category === 'Side effect') {
+    document.querySelectorAll('input[name="symptoms"]').forEach(cb => {
+      cb.checked = (entry.symptoms || []).includes(cb.value);
+    });
+    document.querySelectorAll('input[name="severity"]').forEach(r => {
+      r.checked = r.value === entry.severity;
+    });
+    const medInput = document.querySelector('#quick-form-body input[name="medication"]');
+    if (medInput) medInput.value = entry.medication || '';
+  } else if (entry.category === 'Medication') {
+    const medInput  = document.querySelector('#quick-form-body input[name="medication"]');
+    const doseInput = document.querySelector('#quick-form-body input[name="dose"]');
+    if (medInput)  medInput.value  = entry.medication || '';
+    if (doseInput) doseInput.value = entry.dose || '';
+    document.querySelectorAll('input[name="reason"]').forEach(r => {
+      r.checked = r.value === entry.reason;
+    });
+  }
+  const notesEl = document.querySelector('#quick-form-body textarea[name="notes"]');
+  if (notesEl) notesEl.value = entry.notes || '';
 }
 
 // ── Event listeners ───────────────────────────
@@ -936,22 +1109,35 @@ document.getElementById('seizure-form').addEventListener('submit', e => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const rawTime = fd.get('time');
-  _lastLoggedEntry = {
-    id: String(Date.now()),
-    time: rawTime ? new Date(rawTime).toISOString() : new Date().toISOString(),
-    category: 'Seizure',
-    type: fd.get('type') || 'Unknown',
-    intensity: fd.get('intensity') || '',
-    duration: fd.get('duration') || '',
-    triggers: fd.getAll('triggers'),
-    deviceUsed: fd.get('device-used') || '',
-    notes: String(fd.get('notes') || '').trim(),
+  const existingEntry = _editingEntryId ? getEntries().find(x => x.id === _editingEntryId) : null;
+  const entry = {
+    id:           _editingEntryId || String(Date.now()),
+    time:         rawTime ? new Date(rawTime).toISOString() : new Date().toISOString(),
+    category:     'Seizure',
+    type:         fd.get('type') || 'Unknown',
+    intensity:    fd.get('intensity') || '',
+    duration:     fd.get('duration') || '',
+    triggers:     fd.getAll('triggers'),
+    deviceUsed:   fd.get('device-used') || '',
+    notes:        String(fd.get('notes') || '').trim(),
+    logged_by:    (existingEntry && existingEntry.logged_by)    || 'self',
+    source_notes: (existingEntry && existingEntry.source_notes) || '',
+    updated_at:   new Date().toISOString(),
+    completeness: '',
   };
-  addEntry(_lastLoggedEntry);
-  closeLog();
-  showSuccess();
-  showAccountBannerIfNeeded();
-  setTimeout(showCaregiverPrompt, 900);
+  entry.completeness = isEntryComplete(entry) ? 'complete' : 'partial';
+  if (_editingEntryId) {
+    updateEntry(entry);
+    closeLog();
+    renderHome();
+  } else {
+    _lastLoggedEntry = entry;
+    addEntry(entry);
+    closeLog();
+    showSuccess();
+    showAccountBannerIfNeeded();
+    setTimeout(showCaregiverPrompt, 900);
+  }
 });
 
 // Quick log form
@@ -961,30 +1147,43 @@ document.getElementById('quick-form').addEventListener('submit', e => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const rawTime = fd.get('time');
+  const existingEntry = _editingEntryId ? getEntries().find(x => x.id === _editingEntryId) : null;
+  const cat = quickCat || (existingEntry && existingEntry.category);
   const entry = {
-    id: String(Date.now()),
-    time: rawTime ? new Date(rawTime).toISOString() : new Date().toISOString(),
-    category: quickCat,
-    type: quickCat,
-    notes: String(fd.get('notes') || '').trim(),
+    id:           _editingEntryId || String(Date.now()),
+    time:         rawTime ? new Date(rawTime).toISOString() : new Date().toISOString(),
+    category:     cat,
+    type:         cat,
+    notes:        String(fd.get('notes') || '').trim(),
+    logged_by:    (existingEntry && existingEntry.logged_by)    || 'self',
+    source_notes: (existingEntry && existingEntry.source_notes) || '',
+    updated_at:   new Date().toISOString(),
+    completeness: '',
   };
-  if (quickCat === 'Aura') {
-    entry.symptoms = fd.getAll('symptoms');
-    entry.triggers = fd.getAll('triggers');
+  if (cat === 'Aura') {
+    entry.symptoms     = fd.getAll('symptoms');
+    entry.triggers     = fd.getAll('triggers');
     entry.ledToSeizure = fd.get('led-to-seizure') || 'Not sure';
-  } else if (quickCat === 'Side effect') {
-    entry.symptoms = fd.getAll('symptoms');
-    entry.severity = fd.get('severity') || '';
+  } else if (cat === 'Side effect') {
+    entry.symptoms   = fd.getAll('symptoms');
+    entry.severity   = fd.get('severity') || '';
     entry.medication = String(fd.get('medication') || '').trim();
-  } else if (quickCat === 'Medication') {
+  } else if (cat === 'Medication') {
     entry.medication = String(fd.get('medication') || '').trim();
-    entry.dose = String(fd.get('dose') || '').trim();
-    entry.reason = fd.get('reason') || '';
+    entry.dose       = String(fd.get('dose') || '').trim();
+    entry.reason     = fd.get('reason') || '';
   }
-  _lastLoggedEntry = entry;
-  closeQuickLog();
-  addEntry(entry);
-  showSuccess();
+  entry.completeness = isEntryComplete(entry) ? 'complete' : 'partial';
+  if (_editingEntryId) {
+    updateEntry(entry);
+    closeQuickLog();
+    renderHome();
+  } else {
+    _lastLoggedEntry = entry;
+    closeQuickLog();
+    addEntry(entry);
+    showSuccess();
+  }
 });
 
 // ── PWA ───────────────────────────────────────
