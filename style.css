@@ -1668,7 +1668,8 @@ input[type="radio"]:checked + .ob-device-opt .ob-device-desc { display: block; }
 
 /* ── Profile modal ───────────────────────────── */
 #screen-profile {
-  position: fixed;
+  position: absolute;
+  top: auto;
   bottom: 0;
   left: 0;
   right: 0;
