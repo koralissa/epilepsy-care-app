@@ -326,7 +326,7 @@ body {
   background: var(--white);
   border-top: 1px solid var(--purple-200);
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   align-items: center;
   padding: 0 8px;
   padding-bottom: env(safe-area-inset-bottom, 0);
@@ -2166,4 +2166,121 @@ input[type="radio"]:checked + .ob-device-opt .ob-device-desc { display: block; }
 .profile-account-section .profile-row-value {
   font-size: 0.9rem;
   color: var(--text-sec);
+}
+
+/* ── Coming-soon placeholder ─────────────────── */
+.coming-soon-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.coming-soon-placeholder {
+  text-align: center;
+}
+
+.coming-soon-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-sec);
+}
+
+/* ── More drawer ──────────────────────────────── */
+.more-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(23, 43, 77, 0.36);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.more-scrim.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.more-drawer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border-radius: 20px 20px 0 0;
+  z-index: 50;
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.more-drawer.active {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.more-drawer-body {
+  padding-bottom: 24px;
+}
+
+.more-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-sec);
+  padding: 16px 20px 8px;
+  display: block;
+}
+
+.more-section-label-sm {
+  padding-top: 12px;
+}
+
+.more-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--purple-200);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--navy);
+  -webkit-tap-highlight-color: transparent;
+}
+.more-row:active { background: var(--purple-50); }
+.more-row svg { color: var(--text-sec); flex-shrink: 0; }
+
+/* ── Persona chips ────────────────────────────── */
+.more-persona-section { padding: 0; }
+
+.persona-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 20px 8px;
+}
+
+.persona-chip {
+  padding: 8px 22px;
+  border: 1.5px solid var(--purple-900);
+  border-radius: 100px;
+  background: none;
+  color: var(--purple-900);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.persona-chip:active {
+  background: var(--purple-900);
+  color: var(--white);
 }

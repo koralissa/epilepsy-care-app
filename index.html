@@ -21,8 +21,8 @@
     <!-- ── Main screen ─────────────────────── -->
     <div id="screen-main">
 
-      <!-- Home tab -->
-      <div id="view-home" class="tab-view">
+      <!-- Today tab -->
+      <div id="view-today" class="tab-view">
         <header class="app-header">
           <div class="header-inner">
             <div class="header-brand">
@@ -37,7 +37,6 @@
               </svg>
             </button>
           </div>
-          <!-- Single static EEG line, white at 20% opacity -->
           <div class="eeg-strip" aria-hidden="true">
             <svg class="eeg-wave" viewBox="0 0 800 32" preserveAspectRatio="none" fill="none">
               <defs>
@@ -50,46 +49,19 @@
           </div>
         </header>
 
-        <div class="view-body">
-          <!-- Account backup banner (shown after first log, dismissed per device) -->
-          <div id="account-banner" class="account-banner" hidden>
-            <div class="account-banner-content">
-              <span>Data saved on this device only.</span>
-              <button class="account-banner-cta" id="btn-banner-create-account">Create account</button>
-            </div>
-            <button class="account-banner-dismiss" id="btn-banner-dismiss" aria-label="Dismiss">×</button>
+        <!-- Account backup banner (shown after first log, dismissed per device) -->
+        <div id="account-banner" class="account-banner" hidden>
+          <div class="account-banner-content">
+            <span>Data saved on this device only.</span>
+            <button class="account-banner-cta" id="btn-banner-create-account">Create account</button>
           </div>
+          <button class="account-banner-dismiss" id="btn-banner-dismiss" aria-label="Dismiss">×</button>
+        </div>
 
-          <!-- Stats -->
-          <div class="stats-row">
-            <div class="stat-card">
-              <span class="stat-num" id="stat-last">—</span>
-              <span class="stat-label">Days since last</span>
-            </div>
-            <div class="stat-card">
-              <span class="stat-num" id="stat-month">0</span>
-              <span class="stat-label" id="stat-month-label">This month</span>
-            </div>
+        <div class="view-body coming-soon-body">
+          <div class="coming-soon-placeholder">
+            <p class="coming-soon-label">Coming soon</p>
           </div>
-
-          <!-- Today's medications widget (shown when profile has scheduled meds) -->
-          <div id="meds-widget" class="meds-widget" hidden></div>
-
-          <!-- Quick log -->
-          <button id="btn-log" class="btn-log-hero">
-            <!-- Lucide: plus -->
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12h14"/>
-              <path d="M12 5v14"/>
-            </svg>
-            Log Seizure
-          </button>
-
-          <!-- Recent entries -->
-          <section aria-labelledby="recent-heading">
-            <h2 id="recent-heading" class="section-label">Recent</h2>
-            <div id="entries-list" role="list"></div>
-          </section>
         </div>
       </div>
 
@@ -115,41 +87,67 @@
         <div id="insights-body" class="view-body"></div>
       </div>
 
-      <!-- DEV ONLY: remove before demo -->
-      <div class="dev-reset-bar">
-        <button class="dev-reset-btn" onclick="localStorage.clear(); location.reload()">Reset onboarding</button>
+      <!-- Assist tab -->
+      <div id="view-assist" class="tab-view" hidden>
+        <header class="app-header">
+          <div class="header-inner">
+            <h1 class="brand">Assist</h1>
+          </div>
+        </header>
+        <div class="view-body coming-soon-body">
+          <div class="coming-soon-placeholder">
+            <p class="coming-soon-label">Coming soon</p>
+          </div>
+        </div>
       </div>
 
       <!-- Bottom nav -->
       <nav class="bottom-nav" aria-label="Main navigation">
-        <button class="nav-btn active" data-view="home">
-          <!-- Lucide: house -->
+        <button class="nav-btn active" data-view="today">
+          <!-- Lucide: calendar -->
           <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
-            <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <path d="M8 2v4"/><path d="M16 2v4"/>
+            <rect width="18" height="18" x="3" y="4" rx="2"/>
+            <path d="M3 10h18"/>
           </svg>
-          <span class="nav-label">Home</span>
-        </button>
-
-        <button class="nav-btn nav-fab" id="nav-log-btn" aria-label="Log seizure">
-          <div class="fab-circle" aria-hidden="true">
-            <!-- Lucide: plus -->
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14"/>
-              <path d="M12 5v14"/>
-            </svg>
-          </div>
+          <span class="nav-label">Today</span>
         </button>
 
         <button class="nav-btn" data-view="insights">
           <!-- Lucide: chart-column-increasing -->
           <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 3v18h18"/>
-            <path d="M18 17V9"/>
-            <path d="M13 17V5"/>
-            <path d="M8 17v-3"/>
+            <path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
           </svg>
           <span class="nav-label">Insights</span>
+        </button>
+
+        <button class="nav-btn nav-fab" id="nav-log-btn" aria-label="Log">
+          <div class="fab-circle" aria-hidden="true">
+            <!-- Lucide: plus -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/><path d="M12 5v14"/>
+            </svg>
+          </div>
+        </button>
+
+        <button class="nav-btn" data-view="assist">
+          <!-- Lucide: sparkles -->
+          <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+            <path d="M20 3v4"/><path d="M22 5h-4"/>
+            <path d="M4 17v2"/><path d="M5 18H3"/>
+          </svg>
+          <span class="nav-label">Assist</span>
+        </button>
+
+        <button class="nav-btn" id="nav-more-btn">
+          <!-- Lucide: menu -->
+          <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="4" x2="20" y1="6" y2="6"/>
+            <line x1="4" x2="20" y1="12" y2="12"/>
+            <line x1="4" x2="20" y1="18" y2="18"/>
+          </svg>
+          <span class="nav-label">More</span>
         </button>
       </nav>
     </div>
@@ -799,6 +797,29 @@
       <p id="pp-question" class="pp-question"></p>
       <div id="pp-choices" class="pp-choices" role="group" aria-label="Response options"></div>
       <button type="button" id="btn-pp-skip" class="pp-skip">Skip for now</button>
+    </div>
+
+    <!-- ── More drawer ─────────────────────────── -->
+    <div id="more-scrim" class="more-scrim" hidden></div>
+    <div id="more-drawer" class="more-drawer" hidden>
+      <div class="modal-handle" aria-hidden="true"></div>
+      <div class="more-drawer-body">
+        <p class="more-section-label">Demo Mode</p>
+        <button class="more-row" id="btn-demo-reset">
+          <!-- Lucide: rotate-ccw -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>Reset Onboarding</span>
+        </button>
+        <div class="more-persona-section">
+          <p class="more-section-label more-section-label-sm">Load persona</p>
+          <div class="persona-chips">
+            <button class="persona-chip" data-persona="sarah">Sarah</button>
+            <button class="persona-chip" data-persona="marcus">Marcus</button>
+            <button class="persona-chip" data-persona="linda">Linda</button>
+            <button class="persona-chip" data-persona="maya">Maya</button>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div><!-- /.app-shell -->

@@ -55,6 +55,139 @@ function switchTab(tabName) {
   }
 }
 
+// ── More drawer ───────────────────────────────
+function openMoreDrawer() {
+  const scrim = document.getElementById('more-scrim');
+  const drawer = document.getElementById('more-drawer');
+  scrim.hidden = false;
+  drawer.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    drawer.classList.add('active');
+    scrim.classList.add('active');
+  }));
+}
+
+function closeMoreDrawer() {
+  const drawer = document.getElementById('more-drawer');
+  const scrim  = document.getElementById('more-scrim');
+  drawer.classList.remove('active');
+  scrim.classList.remove('active');
+  setTimeout(() => { drawer.hidden = true; scrim.hidden = true; }, 260);
+}
+
+// ── Demo personas ──────────────────────────────
+const _DAY = 86_400_000;
+const _NOW = Date.now();
+
+const DEMO_PERSONAS = {
+  sarah: {
+    account: {
+      firstName: 'Sarah', email: 'sarah@vivea.app',
+      _passwordHash: btoa(encodeURIComponent('demo1234')),
+      createdAt: new Date(_NOW - 45 * _DAY).toISOString(),
+      hasProfile: true, profileCompleteness: 83,
+    },
+    profile: {
+      userType: 'newly_diagnosed',
+      seizureTypes: ['Focal aware'],
+      takingMeds: 'yes',
+      medications: [{ name: 'Keppra', strength: '500', unit: 'mg', timesPerDay: 2, reminders: true, reminderTimes: ['08:00', '20:00'] }],
+      triggers: ['Stress', 'Poor sleep'], dontKnowTriggers: false,
+      trackCycle: 'yes', hasDevice: 'no', deviceType: null,
+    },
+    entries: [
+      { id: String(_NOW-1), time: new Date(_NOW - 3*_DAY).toISOString(), category:'Seizure', type:'Focal aware', intensity:'Mild', duration:'1–2 min', triggers:['Stress'], notes:'Happened during a stressful presentation at work.' },
+      { id: String(_NOW-2), time: new Date(_NOW - 11*_DAY).toISOString(), category:'Seizure', type:'Focal aware', intensity:'Mild', duration:'< 1 min', triggers:['Poor sleep'], notes:'Only slept 4 hours the night before.' },
+      { id: String(_NOW-3), time: new Date(_NOW - 19*_DAY).toISOString(), category:'Aura', type:'Aura', symptoms:['Visual disturbance','Déjà vu'], triggers:['Stress'], ledToSeizure:'No', notes:'Felt strange for about 20 seconds.' },
+      { id: String(_NOW-4), time: new Date(_NOW - 28*_DAY).toISOString(), category:'Side effect', type:'Side effect', symptoms:['Fatigue','Mood changes'], medication:'Keppra', notes:'Feeling really tired and irritable since dose increase.' },
+    ],
+  },
+  marcus: {
+    account: {
+      firstName: 'Marcus', email: 'marcus@vivea.app',
+      _passwordHash: btoa(encodeURIComponent('demo1234')),
+      createdAt: new Date(_NOW - 180 * _DAY).toISOString(),
+      hasProfile: true, profileCompleteness: 100,
+    },
+    profile: {
+      userType: 'living',
+      seizureTypes: ['Tonic-clonic', 'Focal impaired'],
+      takingMeds: 'yes',
+      medications: [
+        { name: 'Lamictal', strength: '200', unit: 'mg', timesPerDay: 2, reminders: true, reminderTimes: ['08:00', '20:00'] },
+        { name: 'Vimpat',   strength: '150', unit: 'mg', timesPerDay: 2, reminders: true, reminderTimes: ['08:00', '20:00'] },
+      ],
+      triggers: ['Poor sleep', 'Stress', 'Alcohol'], dontKnowTriggers: false,
+      trackCycle: 'no', hasDevice: 'yes', deviceType: 'VNS',
+    },
+    entries: [
+      { id: String(_NOW-10), time: new Date(_NOW - 5*_DAY).toISOString(), category:'Seizure', type:'Tonic-clonic', intensity:'Severe', duration:'2–5 min', triggers:['Poor sleep','Alcohol'], deviceUsed:'Auto-activated', notes:'Had drinks the night before. VNS auto-activated.' },
+      { id: String(_NOW-11), time: new Date(_NOW - 14*_DAY).toISOString(), category:'Seizure', type:'Focal impaired', intensity:'Moderate', duration:'1–2 min', triggers:['Stress'], deviceUsed:'Yes', notes:'Work deadline crunch. Activated VNS manually.' },
+      { id: String(_NOW-12), time: new Date(_NOW - 26*_DAY).toISOString(), category:'Seizure', type:'Tonic-clonic', intensity:'Moderate', duration:'2–5 min', triggers:['Poor sleep'], deviceUsed:'Auto-activated', notes:'' },
+      { id: String(_NOW-13), time: new Date(_NOW - 33*_DAY).toISOString(), category:'Medication', type:'Medication', medication:'Lamictal', dose:'200mg', reason:'Missed', notes:'Forgot morning dose while traveling.' },
+    ],
+  },
+  linda: {
+    account: {
+      firstName: 'Linda', email: 'linda@vivea.app',
+      _passwordHash: btoa(encodeURIComponent('demo1234')),
+      createdAt: new Date(_NOW - 90 * _DAY).toISOString(),
+      hasProfile: true, profileCompleteness: 67,
+    },
+    profile: {
+      userType: 'caregiver',
+      seizureTypes: ['Absence', 'Myoclonic'],
+      takingMeds: 'yes',
+      medications: [{ name: 'Depakote', strength: '250', unit: 'mg', timesPerDay: 3, reminders: true, reminderTimes: ['08:00', '14:00', '20:00'] }],
+      triggers: ['Flashing lights', 'Illness/fever'], dontKnowTriggers: false,
+      trackCycle: null, hasDevice: 'no', deviceType: null,
+    },
+    entries: [
+      { id: String(_NOW-20), time: new Date(_NOW - 1*_DAY).toISOString(), category:'Seizure', type:'Absence', intensity:'Mild', duration:'< 1 min', triggers:[], notes:'Brief staring spell during breakfast, about 15 seconds.' },
+      { id: String(_NOW-21), time: new Date(_NOW - 6*_DAY).toISOString(), category:'Seizure', type:'Absence', intensity:'Mild', duration:'< 1 min', triggers:['Illness/fever'], notes:'Had a cold. Two episodes this morning.' },
+      { id: String(_NOW-22), time: new Date(_NOW - 13*_DAY).toISOString(), category:'Seizure', type:'Myoclonic', intensity:'Mild', duration:'< 1 min', triggers:[], notes:'Arm jerks at breakfast, common after waking.' },
+      { id: String(_NOW-23), time: new Date(_NOW - 22*_DAY).toISOString(), category:'Note', type:'Note', notes:'Appointment with Dr. Chen — increased Depakote to 250mg three times daily.' },
+    ],
+  },
+  maya: {
+    account: {
+      firstName: 'Maya', email: 'maya@vivea.app',
+      _passwordHash: btoa(encodeURIComponent('demo1234')),
+      createdAt: new Date(_NOW - 30 * _DAY).toISOString(),
+      hasProfile: true, profileCompleteness: 50,
+    },
+    profile: {
+      userType: 'living',
+      seizureTypes: ['Focal aware', 'Tonic-clonic'],
+      takingMeds: 'yes',
+      medications: [{ name: 'Lamictal', strength: '100', unit: 'mg', timesPerDay: 2, reminders: true, reminderTimes: ['08:00', '20:00'] }],
+      triggers: ['Hormonal/cycle', 'Stress'], dontKnowTriggers: false,
+      trackCycle: 'yes', hasDevice: 'no', deviceType: null,
+    },
+    entries: [
+      { id: String(_NOW-30), time: new Date(_NOW - 7*_DAY).toISOString(), category:'Seizure', type:'Focal aware', intensity:'Moderate', duration:'1–2 min', triggers:['Hormonal/cycle','Stress'], notes:'First week of cycle and exam week.' },
+      { id: String(_NOW-31), time: new Date(_NOW - 15*_DAY).toISOString(), category:'Aura', type:'Aura', symptoms:['Tingling','Fear'], triggers:['Stress'], ledToSeizure:'No', notes:'Tingling in left hand, lasted 30 seconds.' },
+      { id: String(_NOW-32), time: new Date(_NOW - 22*_DAY).toISOString(), category:'Seizure', type:'Tonic-clonic', intensity:'Severe', duration:'2–5 min', triggers:['Hormonal/cycle'], notes:'Second ever TC. Ambulance called.' },
+      { id: String(_NOW-33), time: new Date(_NOW - 30*_DAY).toISOString(), category:'Medication', type:'Medication', medication:'Lamictal', dose:'100mg', reason:'Scheduled', notes:'Started new medication today.' },
+    ],
+  },
+};
+
+function loadPersona(name) {
+  const p = DEMO_PERSONAS[name];
+  if (!p) return;
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('vivea_') || k === STORAGE_KEY) localStorage.removeItem(k);
+  });
+  localStorage.setItem(ACCOUNT_KEY,    JSON.stringify(p.account));
+  localStorage.setItem(OB_PROFILE_KEY, JSON.stringify(p.profile));
+  localStorage.setItem(OB_DONE_KEY,    'true');
+  localStorage.setItem(WELCOME_KEY,    '1');
+  localStorage.setItem(STORAGE_KEY,    JSON.stringify(p.entries));
+  closeMoreDrawer();
+  setTimeout(() => location.reload(), 260);
+}
+
 // ── Log modal ─────────────────────────────────
 function openLog() {
   const modal = document.getElementById('screen-log');
@@ -91,42 +224,9 @@ function localISO() {
 
 // ── Render home ───────────────────────────────
 function renderHome() {
-  const entries = getEntries();
-  const profile = getProfile();
   const greetEl = document.getElementById('greeting');
   if (greetEl) greetEl.textContent = greeting();
-
-  // Stats
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const thisMonth = entries.filter(e => new Date(e.time) >= startOfMonth).length;
-  document.getElementById('stat-month').textContent = String(thisMonth);
-
-  // Seizure-type context in "This month" label
-  const monthLabel = document.getElementById('stat-month-label');
-  if (monthLabel) {
-    const types = profile && profile.seizureTypes;
-    monthLabel.textContent = (types && types.length === 1)
-      ? `${types[0]} this month`
-      : 'This month';
-  }
-
-  if (entries.length > 0) {
-    const diff = Math.floor((now - new Date(entries[0].time)) / 86_400_000);
-    document.getElementById('stat-last').textContent = diff === 0 ? 'Today' : String(diff);
-  } else {
-    document.getElementById('stat-last').textContent = '—';
-  }
-
   renderMedsWidget();
-
-  // Entry list
-  const list = document.getElementById('entries-list');
-  if (entries.length === 0) {
-    list.innerHTML = '<p class="empty-state">No entries yet.<br>Tap <strong>Log Seizure</strong> when you need it.</p>';
-    return;
-  }
-  list.innerHTML = entries.slice(0, 20).map(entryCardHTML).join('');
 }
 
 // ── Render insights ───────────────────────────
@@ -492,8 +592,7 @@ document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.view));
 });
 
-// Both log entry points open the picker
-document.getElementById('btn-log').addEventListener('click', openPicker);
+// FAB opens the picker
 document.getElementById('nav-log-btn').addEventListener('click', openPicker);
 
 // Picker dismiss
@@ -1735,6 +1834,23 @@ document.getElementById('btn-insights-create-account').addEventListener('click',
 
 // PP sheet skip
 document.getElementById('btn-pp-skip').addEventListener('click', closePPSheet);
+
+// More drawer
+document.getElementById('nav-more-btn').addEventListener('click', openMoreDrawer);
+document.getElementById('more-scrim').addEventListener('click', closeMoreDrawer);
+
+document.getElementById('btn-demo-reset').addEventListener('click', () => {
+  if (confirm('Clear all data and reset onboarding?')) {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('vivea_') || k === STORAGE_KEY) localStorage.removeItem(k);
+    });
+    location.reload();
+  }
+});
+
+document.querySelectorAll('.persona-chip').forEach(btn => {
+  btn.addEventListener('click', () => loadPersona(btn.dataset.persona));
+});
 
 // ── Boot ──────────────────────────────────────
 const greetEl = document.getElementById('greeting');
