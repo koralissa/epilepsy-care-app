@@ -1,12 +1,14 @@
 'use strict';
 
-const STORAGE_KEY    = 'epitrack_entries';
-const OB_DONE_KEY    = 'vivea_onboarded';
-const OB_PROFILE_KEY = 'vivea_profile';
-const WELCOME_KEY    = 'vivea_welcomed';
-const BANNER_KEY     = 'vivea_banner_dismissed';
-const MED_LOG_PFX    = 'vivea_meds_';
-const ACCOUNT_KEY    = 'vivea_account';
+const STORAGE_KEY       = 'epitrack_entries';
+const OB_DONE_KEY       = 'vivea_onboarded';
+const OB_PROFILE_KEY    = 'vivea_profile';
+const WELCOME_KEY       = 'vivea_welcomed';
+const BANNER_KEY        = 'vivea_banner_dismissed';
+const MED_LOG_PFX       = 'vivea_meds_';
+const ACCOUNT_KEY       = 'vivea_account';
+const API_KEY_KEY       = 'vivea_api_key';
+const PATTERN_CACHE_KEY = 'vivea_pattern_cache';
 
 function getProfile() {
   try { return JSON.parse(localStorage.getItem(OB_PROFILE_KEY)); } catch { return null; }
@@ -231,6 +233,177 @@ function renderHome() {
   renderMedsWidget();
 }
 
+// ── Pattern Agent ─────────────────────────────
+
+function getPatternCache() {
+  try { return JSON.parse(localStorage.getItem(PATTERN_CACHE_KEY)); } catch { return null; }
+}
+
+function savePatternCache(data) {
+  localStorage.setItem(PATTERN_CACHE_KEY, JSON.stringify(data));
+}
+
+function buildPatternPrompt(entries, profile) {
+  const profileParts = [];
+  if (profile) {
+    if (profile.userType) profileParts.push(`User type: ${profile.userType.replace('_', ' ')}`);
+    if ((profile.seizureTypes || []).length) profileParts.push(`Seizure types: ${profile.seizureTypes.join(', ')}`);
+    if (profile.takingMeds === 'yes' && (profile.medications || []).length) {
+      const medStr = profile.medications.map(m =>
+        typeof m === 'object'
+          ? `${m.name}${m.strength ? ` ${m.strength}${m.unit || 'mg'}` : ''} (${(FREQ_CONFIG[m.timesPerDay] || {}).label || `${m.timesPerDay}x/day`})`
+          : String(m)
+      ).join('; ');
+      profileParts.push(`Medications: ${medStr}`);
+    }
+    if ((profile.triggers || []).length) profileParts.push(`Known triggers: ${profile.triggers.join(', ')}`);
+    if (profile.hasDevice === 'yes' && profile.deviceType) profileParts.push(`Device: ${profile.deviceType}`);
+  }
+
+  const entryLines = entries.map(e => {
+    const d = new Date(e.time);
+    const datePart = d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+    const timePart = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const parts = [
+      `${datePart} ${timePart}`,
+      `${e.category}${e.type && e.type !== e.category ? ` (${e.type})` : ''}`,
+    ];
+    if (e.intensity) parts.push(e.intensity);
+    if (e.duration)  parts.push(e.duration);
+    if ((e.triggers  || []).length) parts.push(`triggers: ${e.triggers.join(', ')}`);
+    if ((e.symptoms  || []).length) parts.push(`symptoms: ${e.symptoms.join(', ')}`);
+    if (e.medication) parts.push(`med: ${e.medication}${e.dose ? ` ${e.dose}` : ''}${e.reason ? ` (${e.reason})` : ''}`);
+    if (e.ledToSeizure && e.ledToSeizure !== 'Not sure') parts.push(`led to seizure: ${e.ledToSeizure}`);
+    if (e.notes) parts.push(`notes: "${e.notes}"`);
+    return parts.join(' | ');
+  });
+
+  const system = `You are a neurological pattern analyst helping people with epilepsy understand their health data. Analyze the log entries and profile below. Return ONLY a JSON array of exactly 3 insight objects. No markdown, no code blocks, no preamble — just the raw JSON array starting with [ and ending with ]. Each object must have exactly these fields: type (one of: "pattern", "trend", "gap"), headline (one concise sentence), detail (2-3 sentences of explanation in plain language appropriate for a patient), confidence ("high", "medium", or "low").`;
+
+  const userMsg = [
+    profileParts.length ? `Profile:\n${profileParts.join('\n')}` : '',
+    `Log entries (${entries.length} total, newest first):\n${entryLines.join('\n')}`,
+  ].filter(Boolean).join('\n\n');
+
+  return { system, user: userMsg };
+}
+
+async function callPatternAgent(entries, apiKey) {
+  const { system, user } = buildPatternPrompt(entries, getProfile());
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system,
+      messages: [{ role: 'user', content: user }],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error?.message || `API error ${res.status}`);
+  }
+
+  const data = await res.json();
+  const raw  = (data.content[0]?.text || '').trim();
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+  const insights = JSON.parse(cleaned);
+  if (!Array.isArray(insights)) throw new Error('Unexpected response format');
+  return insights;
+}
+
+function renderInsightCards(container, insights) {
+  const confLabel = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence' };
+  const cards = insights.slice(0, 3).map(ins => {
+    const type = ['pattern', 'trend', 'gap'].includes(ins.type) ? ins.type : 'pattern';
+    const conf = ['high', 'medium', 'low'].includes(ins.confidence) ? ins.confidence : 'medium';
+    return `<article class="pattern-card pattern-card-${type}">
+      <p class="pattern-headline">${esc(ins.headline || '')}</p>
+      <p class="pattern-detail">${esc(ins.detail || '')}</p>
+      <span class="pattern-confidence pattern-conf-${conf}">${esc(confLabel[conf])}</span>
+    </article>`;
+  }).join('');
+  container.innerHTML = `<div class="pattern-section">
+    <h3 class="section-label">AI Pattern Analysis</h3>
+    <div class="pattern-cards">${cards}</div>
+  </div>`;
+}
+
+async function renderPatternSection(entries, container) {
+  if (entries.length < 3) {
+    container.innerHTML = `<div class="pattern-section">
+      <h3 class="section-label">AI Pattern Analysis</h3>
+      <p class="pattern-min-entries">Log at least 3 events to see pattern analysis.</p>
+    </div>`;
+    return;
+  }
+
+  const apiKey = localStorage.getItem(API_KEY_KEY);
+  if (!apiKey) {
+    container.innerHTML = `<div class="pattern-section">
+      <h3 class="section-label">AI Pattern Analysis</h3>
+      <div class="pattern-apikey-prompt">
+        <p class="pattern-apikey-msg">Enter your Anthropic API key to enable AI analysis.</p>
+        <div class="pattern-apikey-row">
+          <input type="password" id="pattern-apikey-input" class="input-field pattern-apikey-input"
+            placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
+          <button id="pattern-apikey-save" class="pattern-apikey-save-btn">Save</button>
+        </div>
+        <p class="pattern-apikey-note">Stored on this device only. Sent only to Anthropic's API.</p>
+      </div>
+    </div>`;
+    document.getElementById('pattern-apikey-save').addEventListener('click', () => {
+      const val = (document.getElementById('pattern-apikey-input').value || '').trim();
+      if (!val) return;
+      localStorage.setItem(API_KEY_KEY, val);
+      localStorage.removeItem(PATTERN_CACHE_KEY);
+      renderPatternSection(entries, container);
+    });
+    return;
+  }
+
+  const cache = getPatternCache();
+  if (cache && cache.entryCount === entries.length && Array.isArray(cache.insights)) {
+    renderInsightCards(container, cache.insights);
+    return;
+  }
+
+  container.innerHTML = `<div class="pattern-section">
+    <h3 class="section-label">AI Pattern Analysis</h3>
+    <div class="pattern-loading" aria-live="polite" aria-label="Analyzing patterns…">
+      <div class="pattern-loading-card"></div>
+      <div class="pattern-loading-card"></div>
+      <div class="pattern-loading-card"></div>
+    </div>
+  </div>`;
+
+  try {
+    const insights = await callPatternAgent(entries, apiKey);
+    if (!container.isConnected) return;
+    savePatternCache({ insights, entryCount: entries.length, ts: Date.now() });
+    renderInsightCards(container, insights);
+  } catch (err) {
+    if (!container.isConnected) return;
+    container.innerHTML = `<div class="pattern-section">
+      <h3 class="section-label">AI Pattern Analysis</h3>
+      <div class="pattern-error">
+        <p class="pattern-error-msg">${esc(err.message || 'Could not load insights.')}</p>
+        <button class="pattern-retry-btn" id="pattern-retry">Retry</button>
+      </div>
+    </div>`;
+    document.getElementById('pattern-retry').addEventListener('click', () => {
+      renderPatternSection(entries, container);
+    });
+  }
+}
+
 // ── Render insights ───────────────────────────
 function renderInsights() {
   const entries = getEntries();
@@ -287,6 +460,8 @@ function renderInsights() {
       </div>
     </div>
 
+    <div id="pattern-section"></div>
+
     ${topTrigger ? `
     <div>
       <h3 class="section-label">Most common trigger</h3>
@@ -311,6 +486,8 @@ function renderInsights() {
       `).join('')}
     </div>
   `;
+
+  renderPatternSection(entries, document.getElementById('pattern-section'));
 }
 
 // ── Category map ──────────────────────────────

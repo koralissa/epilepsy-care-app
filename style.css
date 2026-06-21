@@ -2286,3 +2286,178 @@ input[type="radio"]:checked + .ob-device-opt .ob-device-desc { display: block; }
   background: var(--purple-900);
   color: var(--white);
 }
+
+/* ── Pattern Agent (AI Insights) ─────────────── */
+.pattern-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pattern-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pattern-card {
+  background: var(--white);
+  border: 1px solid var(--purple-200);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pattern-card-pattern { border-left-color: var(--purple-900); }
+.pattern-card-trend   { border-left-color: #0088CC; }
+.pattern-card-gap     { border-left-color: #D97706; }
+
+.pattern-headline {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.4;
+}
+
+.pattern-detail {
+  font-size: 13px;
+  color: var(--text-sec);
+  line-height: 1.6;
+}
+
+.pattern-confidence {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 100px;
+  align-self: flex-start;
+  letter-spacing: 0.2px;
+}
+
+.pattern-conf-high   { background: #E8F5E9; color: #2E7D32; }
+.pattern-conf-medium { background: #FFF8E1; color: #E65100; }
+.pattern-conf-low    { background: var(--purple-50); color: var(--purple-700); }
+
+/* Loading skeletons */
+.pattern-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@keyframes pattern-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.pattern-loading-card {
+  height: 100px;
+  border-radius: var(--radius);
+  background: linear-gradient(
+    90deg,
+    var(--purple-50) 25%,
+    var(--purple-200) 50%,
+    var(--purple-50) 75%
+  );
+  background-size: 200% 100%;
+  animation: pattern-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Error state */
+.pattern-error {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #FFF3F0;
+  border: 1px solid #FFBDAD;
+  border-radius: var(--radius);
+}
+
+.pattern-error-msg {
+  font-size: 13px;
+  color: #C62828;
+  line-height: 1.5;
+}
+
+.pattern-retry-btn {
+  align-self: flex-start;
+  background: none;
+  border: 1.5px solid var(--purple-900);
+  border-radius: 100px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--purple-900);
+  padding: 7px 18px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pattern-retry-btn:active { opacity: 0.7; }
+
+/* Fewer-than-3-entries message */
+.pattern-min-entries {
+  font-size: 13px;
+  color: var(--text-sec);
+  padding: 16px;
+  text-align: center;
+  background: var(--purple-50);
+  border-radius: var(--radius);
+}
+
+/* API key prompt */
+.pattern-apikey-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--purple-50);
+  border: 1px solid var(--purple-200);
+  border-radius: var(--radius);
+}
+
+.pattern-apikey-msg {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--navy);
+}
+
+.pattern-apikey-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pattern-apikey-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  padding: 10px 12px;
+  min-height: 44px;
+}
+
+.pattern-apikey-save-btn {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  background: var(--purple-900);
+  color: var(--white);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease);
+}
+.pattern-apikey-save-btn:active { background: var(--purple-700); }
+
+.pattern-apikey-note {
+  font-size: 11px;
+  color: var(--text-sec);
+  line-height: 1.5;
+}
