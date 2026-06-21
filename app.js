@@ -3239,7 +3239,7 @@ function updateSutRunBtn() {
   document.getElementById('btn-sut-run').disabled = !_sutPersona || (!_sutTask && !customTask);
 }
 
-const SUT_SYSTEM_PROMPT = `You are a synthetic user agent for usability testing. You simulate real users interacting with Vivea — a neurological health PWA for epilepsy tracking. You will be given a persona and a task. Simulate that user attempting the task. Think through what they would see, what they would tap, where they might get confused, and what they would feel. Consider that users may be post-ictal, have medication-induced cognitive side effects, or be logging on behalf of someone else. Return ONLY a JSON object — no markdown, no preamble — with this exact structure:
+const SUT_SYSTEM_PROMPT = `You are a synthetic user agent for usability testing. You simulate real users interacting with Vivea — a neurological health PWA for epilepsy tracking. You will be given a persona and a task. Simulate that user attempting the task. Think through what they would see, what they would tap, where they might get confused, and what they would feel. Consider that users may be post-ictal, have medication-induced cognitive side effects, or be logging on behalf of someone else. Structure your response so the most critical content comes first. Complete the JSON object no matter what — if you are running long, shorten the last few recommendations or findings rather than cutting off closing brackets. A complete but slightly shorter response is always better than a rich but broken one. Never leave JSON unclosed. Return ONLY a JSON object — no markdown, no preamble — with this exact structure:
 {
   "summary": "one sentence overall assessment",
   "overallResult": "pass or partial or fail",
@@ -3343,7 +3343,7 @@ async function runSutTest() {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        max_tokens: 4000,
         system: SUT_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: buildSutUserPrompt(_sutPersona, task) }],
       }),
@@ -3355,11 +3355,19 @@ async function runSutTest() {
     let data;
     try {
       const first = text.indexOf('{');
-      const last  = text.lastIndexOf('}');
-      if (first === -1 || last === -1) throw new Error('no JSON object found');
-      data = JSON.parse(text.slice(first, last + 1));
+      if (first === -1) throw new Error('no JSON object found in response');
+      // Slice from first { to last } (handles leading/trailing prose or fences)
+      const last = text.lastIndexOf('}');
+      const base = last !== -1 ? text.slice(first, last + 1) : text.slice(first);
+      // Try to parse; if it fails, attempt to auto-close truncated JSON
+      const attempts = [base, base + ']}', base + ']}]}'];
+      let lastErr;
+      for (const candidate of attempts) {
+        try { data = JSON.parse(candidate); break; } catch (e) { lastErr = e; }
+      }
+      if (!data) throw new Error(`JSON parse failed: ${lastErr.message}\n\nRaw response:\n${text}`);
     } catch (parseErr) {
-      throw new Error(`Could not parse JSON response: ${parseErr.message}\n\nRaw response:\n${text}`);
+      throw new Error(parseErr.message);
     }
     renderSutResults(data);
   } catch (err) {
