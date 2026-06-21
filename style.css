@@ -3080,6 +3080,18 @@ input[type="radio"]:checked + .ob-device-opt .ob-device-desc { display: block; }
   padding: 16px 0 8px;
 }
 .sut-error p { font-size: 14px; color: var(--text-sec); margin-bottom: 10px; }
+.sut-error-detail {
+  font-size: 12px;
+  color: var(--text-sec);
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--purple-50);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-family: monospace;
+  line-height: 1.5;
+}
 .sut-retry-btn {
   padding: 8px 18px;
   border: 1.5px solid var(--purple-900);

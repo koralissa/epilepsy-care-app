@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'vivea-v16';
+const CACHE = 'vivea-v17';
 const PRECACHE = ['./index.html', './style.css', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {

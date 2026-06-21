@@ -3343,7 +3343,7 @@ async function runSutTest() {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
+        max_tokens: 2000,
         system: SUT_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: buildSutUserPrompt(_sutPersona, task) }],
       }),
@@ -3351,18 +3351,21 @@ async function runSutTest() {
     if (!resp.ok) throw new Error(`API ${resp.status}`);
     const raw = await resp.json();
     const text = (raw.content?.[0]?.text || '').trim();
+    console.log('[SUT] raw response:', text);
     let data;
     try {
-      const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
-      data = JSON.parse(cleaned);
-    } catch {
-      throw new Error('Could not parse JSON response');
+      const first = text.indexOf('{');
+      const last  = text.lastIndexOf('}');
+      if (first === -1 || last === -1) throw new Error('no JSON object found');
+      data = JSON.parse(text.slice(first, last + 1));
+    } catch (parseErr) {
+      throw new Error(`Could not parse JSON response: ${parseErr.message}\n\nRaw response:\n${text}`);
     }
     renderSutResults(data);
   } catch (err) {
     resultsEl.innerHTML = `
       <div class="sut-error">
-        <p>${esc(err.message || 'Something went wrong.')}</p>
+        <pre class="sut-error-detail">${esc(err.message || 'Something went wrong.')}</pre>
         <button class="sut-retry-btn" id="btn-sut-retry">Retry</button>
       </div>`;
     document.getElementById('btn-sut-retry').addEventListener('click', runSutTest);
