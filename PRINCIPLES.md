@@ -114,4 +114,8 @@ The goal is to help people live better.
 
 ---
 
-*Vivea — "to live." Thrive.*
+## Principle 6: Patient Considerations
+Never ask for decisions post-seizure. Post-ictal state is real — disorientation, fatigue, confusion can last minutes to hours. The app acknowledges, never interrogates.
+The user population has medically induced memory challenges. AEDs cause cognitive side effects. The app acts as an external memory system — never relying on user recall.
+Contextual surfacing has three modes: passive acknowledgment (post-seizure), gentle surfacing (Today tab, when ready), full engagement (Insights tab, human in the loop).
+We've got their back. The app is a care partner, not a data collector.

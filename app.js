@@ -22,7 +22,7 @@ function getAccount() {
 function setAccount(a) { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(a)); }
 
 let _lastLoggedEntry = null;
-let _currentContextualFp = null;
+let _currentContextualTrackingIns = null;
 
 // ── Storage ───────────────────────────────────
 function getEntries() {
@@ -368,62 +368,6 @@ async function callPatternAgent(entries, apiKey) {
   return insights;
 }
 
-function buildContextualPrompt(entry, allEntries, profile, patternHistory) {
-  const d = new Date(entry.time);
-  const when = `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
-  const parts = [
-    when,
-    `${entry.category}${entry.type && entry.type !== entry.category ? ` (${entry.type})` : ''}`,
-  ];
-  if (entry.intensity) parts.push(entry.intensity);
-  if (entry.duration)  parts.push(entry.duration);
-  if ((entry.triggers || []).length) parts.push(`triggers: ${entry.triggers.join(', ')}`);
-  if ((entry.symptoms || []).length) parts.push(`symptoms: ${entry.symptoms.join(', ')}`);
-  if (entry.medication) parts.push(`med: ${entry.medication}${entry.dose ? ` ${entry.dose}` : ''}`);
-  if (entry.notes) parts.push(`notes: "${entry.notes}"`);
-
-  const confirmedLines = Object.values(patternHistory || {})
-    .filter(r => r.times_confirmed >= 1)
-    .map(r => `- ${r.fingerprint.replace(/^[^:]+:/, '')}`);
-
-  const system = `You are a neurological pattern analyst. A user just logged a health event. Based on this event and their history, return ONLY a single JSON object (no markdown, no code fences) with these fields: type ("pattern", "trend", or "gap"), headline (one concise sentence), detail (1-2 sentences in plain language), confidence ("high", "medium", or "low"). Focus on the most actionable insight for this specific entry.`;
-
-  const userMsg = [
-    `Entry just logged:\n${parts.join(' | ')}`,
-    `Total log entries: ${allEntries.length}`,
-    profile && profile.userType ? `User type: ${profile.userType.replace('_', ' ')}` : '',
-    profile && (profile.triggers || []).length ? `Known triggers: ${profile.triggers.join(', ')}` : '',
-    confirmedLines.length ? `Previously confirmed patterns:\n${confirmedLines.join('\n')}` : '',
-  ].filter(Boolean).join('\n\n');
-
-  return { system, user: userMsg };
-}
-
-async function callContextualAgent(entry, entries, apiKey) {
-  const { system, user } = buildContextualPrompt(entry, entries, getProfile(), getPatternHistory());
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 300,
-      system,
-      messages: [{ role: 'user', content: user }],
-    }),
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  const raw = (data.content[0]?.text || '').trim();
-  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-  const ins = JSON.parse(cleaned);
-  if (typeof ins !== 'object' || Array.isArray(ins) || !ins.headline) return null;
-  return ins;
-}
 
 function renderInsightCards(container, insights) {
   const confLabel = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence' };
@@ -564,27 +508,63 @@ async function renderPatternSection(entries, container) {
   }
 }
 
-// ── Contextual post-log insight ───────────────
-async function maybeShowContextualInsight(entry) {
-  const apiKey = localStorage.getItem(API_KEY_KEY);
-  if (!apiKey) return;
-  const entries = getEntries();
-  if (entries.length < 3) return;
-  try {
-    const ins = await callContextualAgent(entry, entries, apiKey);
-    if (ins && ins.headline) showContextualInsightCard(ins);
-  } catch { /* silent — contextual insight is optional */ }
+// ── Contextual post-log acknowledgment ───────
+function buildAcknowledgmentMessage(entry) {
+  const triggers = (entry.triggers || []).filter(t => t && t !== 'Unknown');
+  const history  = getPatternHistory();
+
+  if (triggers.length > 0) {
+    const trigger     = triggers[0];
+    const trackingIns = { type: 'pattern', headline: `trigger: ${trigger.toLowerCase()}` };
+    const fp          = insightFingerprint(trackingIns);
+    const rec         = history[fp];
+    const seenBefore  = rec && (rec.times_surfaced || 0) >= 1;
+    return {
+      headline: seenBefore
+        ? `We noticed ${trigger.toLowerCase()} came up again.`
+        : `${trigger} was logged as a trigger.`,
+      body: `We're keeping track.`,
+      trackingIns,
+    };
+  }
+
+  if (entry.category === 'Aura') {
+    return {
+      headline: `Aura logged.`,
+      body: `Rest if you need to. We're here.`,
+      trackingIns: { type: 'pattern', headline: 'aura logged' },
+    };
+  }
+
+  if (entry.intensity === 'Severe') {
+    return {
+      headline: `That's logged.`,
+      body: `Take care of yourself. We've got this.`,
+      trackingIns: { type: 'pattern', headline: 'severe seizure logged' },
+    };
+  }
+
+  return {
+    headline: `We've got this logged.`,
+    body: `Rest if you need to.`,
+    trackingIns: { type: 'pattern', headline: 'seizure logged' },
+  };
 }
 
-function showContextualInsightCard(ins) {
+function maybeShowAcknowledgment(entry) {
+  if (entry.category !== 'Seizure' && entry.category !== 'Aura') return;
+  showContextualInsightCard(buildAcknowledgmentMessage(entry));
+}
+
+function showContextualInsightCard(acknowledgment) {
   const ppSheet = document.getElementById('screen-pp-sheet');
   if (ppSheet && !ppSheet.hidden) return;
   const sheet   = document.getElementById('screen-contextual-insight');
   const scrim   = document.getElementById('ci-scrim');
   const content = document.getElementById('ci-content');
 
-  _currentContextualFp = trackInsightSurfaced(ins);
-  content.innerHTML = `<p class="ci-headline">${esc(ins.headline || '')}</p><p class="ci-detail">${esc(ins.detail || '')}</p>`;
+  _currentContextualTrackingIns = acknowledgment.trackingIns;
+  content.innerHTML = `<p class="ci-headline">${esc(acknowledgment.headline)}</p>${acknowledgment.body ? `<p class="ci-detail">${esc(acknowledgment.body)}</p>` : ''}`;
   scrim.hidden  = false;
   sheet.hidden  = false;
   requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add('active')));
@@ -594,7 +574,7 @@ function closeContextualInsightCard() {
   const sheet = document.getElementById('screen-contextual-insight');
   const scrim = document.getElementById('ci-scrim');
   sheet.classList.remove('active');
-  setTimeout(() => { sheet.hidden = true; scrim.hidden = true; _currentContextualFp = null; }, 300);
+  setTimeout(() => { sheet.hidden = true; scrim.hidden = true; _currentContextualTrackingIns = null; }, 300);
 }
 
 // ── Render insights ───────────────────────────
@@ -717,7 +697,7 @@ function showSuccess() {
     renderHome();
     if (_lastLoggedEntry) {
       checkProgressiveProfiling(_lastLoggedEntry);
-      maybeShowContextualInsight(_lastLoggedEntry);
+      maybeShowAcknowledgment(_lastLoggedEntry);
       _lastLoggedEntry = null;
     }
   }, 1800);
@@ -2171,13 +2151,9 @@ document.getElementById('btn-insights-create-account').addEventListener('click',
 // PP sheet skip
 document.getElementById('btn-pp-skip').addEventListener('click', closePPSheet);
 
-// Contextual insight card
-document.getElementById('btn-ci-confirm').addEventListener('click', () => {
-  if (_currentContextualFp) trackInsightConfirmed(_currentContextualFp);
-  closeContextualInsightCard();
-});
+// Contextual acknowledgment card
 document.getElementById('btn-ci-dismiss').addEventListener('click', () => {
-  if (_currentContextualFp) trackInsightDismissed(_currentContextualFp);
+  if (_currentContextualTrackingIns) trackInsightSurfaced(_currentContextualTrackingIns);
   closeContextualInsightCard();
 });
 

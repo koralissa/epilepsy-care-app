@@ -348,5 +348,9 @@ MVP to a clinical platform.
 
 ---
 
+Orchestration layer planned for V2 — sequences agent calls, manages dependencies, handles staleness. V1 agents are loosely coupled through shared data layer. V2 introduces coordinator so Today Agent always has fresh Pattern Agent output and Clinical Agent only surfaces validated findings.
+Signal accumulation model — pattern confidence is not binary. Tracks times_surfaced, times_confirmed, times_dismissed, corroborating_entry_count. Dismissed once ≠ never show again.
+Samsung Health / Apple Health passive ingestion planned for V2 — sleep, HRV, heart rate, steps, stress, cycle data. Pattern Agent correlates passive health data with seizure logs to surface unknown triggers.
+
 *Built by Melissa Craddock — vivea.app*
 *0 to deployed in 5 days using Claude Code*
