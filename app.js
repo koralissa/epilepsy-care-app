@@ -3138,21 +3138,29 @@ document.getElementById('btn-hcs-ok').addEventListener('click', () => {
 function openSettingsSheet() {
   closeMoreDrawer();
   const sheet = document.getElementById('settings-sheet');
+  const scrim = document.getElementById('settings-scrim');
   const input = document.getElementById('settings-api-key');
   input.value = localStorage.getItem(API_KEY_KEY) || '';
   input.type = 'password';
   document.getElementById('btn-settings-show').textContent = 'Show';
-  sheet.classList.add('active');
-  sheet.removeAttribute('aria-hidden');
+  sheet.hidden = false;
+  scrim.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    sheet.classList.add('active');
+    scrim.classList.add('active');
+  }));
 }
 
 function closeSettingsSheet() {
   const sheet = document.getElementById('settings-sheet');
+  const scrim = document.getElementById('settings-scrim');
   sheet.classList.remove('active');
-  sheet.setAttribute('aria-hidden', 'true');
+  scrim.classList.remove('active');
+  setTimeout(() => { sheet.hidden = true; scrim.hidden = true; }, 260);
 }
 
 document.getElementById('btn-settings').addEventListener('click', openSettingsSheet);
+document.getElementById('settings-scrim').addEventListener('click', closeSettingsSheet);
 
 document.getElementById('btn-settings-show').addEventListener('click', () => {
   const input = document.getElementById('settings-api-key');
