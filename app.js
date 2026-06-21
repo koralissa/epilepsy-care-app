@@ -510,8 +510,10 @@ async function renderPatternSection(entries, container) {
 
 // ── Contextual post-log acknowledgment ───────
 function buildAcknowledgmentMessage(entry) {
-  const triggers = (entry.triggers || []).filter(t => t && t !== 'Unknown');
-  const history  = getPatternHistory();
+  const triggers    = (entry.triggers || []).filter(t => t && t !== 'Unknown');
+  const history     = getPatternHistory();
+  const rawType     = entry.type && entry.type !== entry.category ? entry.type.toLowerCase() : null;
+  const cap         = s => s.charAt(0).toUpperCase() + s.slice(1);
 
   if (triggers.length > 0) {
     const trigger     = triggers[0];
@@ -522,32 +524,31 @@ function buildAcknowledgmentMessage(entry) {
     return {
       headline: seenBefore
         ? `We noticed ${trigger.toLowerCase()} came up again.`
-        : `${trigger} was logged as a trigger.`,
+        : `We've logged ${trigger.toLowerCase()} as a trigger.`,
       body: `We're keeping track.`,
       trackingIns,
     };
   }
 
-  if (entry.category === 'Aura') {
-    return {
-      headline: `Aura logged.`,
-      body: `Rest if you need to. We're here.`,
-      trackingIns: { type: 'pattern', headline: 'aura logged' },
-    };
-  }
+  // Build a type-aware label: "focal aware seizure", "visual aura", "seizure", "aura"
+  const typeLabel   = rawType ? `${rawType} ${entry.category.toLowerCase()}` : entry.category.toLowerCase();
+  const trackingIns = { type: 'pattern', headline: `${typeLabel} logged` };
+  const fp          = insightFingerprint(trackingIns);
+  const rec         = history[fp];
+  const seenBefore  = rec && (rec.times_surfaced || 0) >= 1;
 
-  if (entry.intensity === 'Severe') {
-    return {
-      headline: `That's logged.`,
-      body: `Take care of yourself. We've got this.`,
-      trackingIns: { type: 'pattern', headline: 'severe seizure logged' },
-    };
-  }
+  const headlineFirst = entry.category === 'Aura'
+    ? `${cap(typeLabel)} logged.`
+    : entry.intensity === 'Severe'
+    ? `That's logged.`
+    : `We've got this logged.`;
 
   return {
-    headline: `We've got this logged.`,
-    body: `Rest if you need to.`,
-    trackingIns: { type: 'pattern', headline: 'seizure logged' },
+    headline: seenBefore ? `Another ${typeLabel} logged.` : headlineFirst,
+    body: entry.category === 'Aura'
+      ? `Rest if you need to. We're here.`
+      : `Rest if you need to. We're watching for patterns.`,
+    trackingIns,
   };
 }
 
